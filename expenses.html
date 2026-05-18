@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMEX → Expense Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --border: #1f2a44;
+    --accent: #10b981;
+    --accent2: #f59e0b;
+    --danger: #ef4444;
+    --text: #e5e7eb;
+    --muted: #6b7280;
+    --muted2: #9ca3af;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Barlow', sans-serif; min-height: 100vh; padding: 24px; }
+
+  .wrap { max-width: 1240px; margin: 0 auto; }
+  h1 { font-family:'Barlow Condensed',sans-serif; font-size:1.8rem; letter-spacing:3px; text-transform:uppercase; }
+  h1 .sub { color: var(--accent); }
+  .lede { color: var(--muted2); margin-top:6px; font-size:0.92rem; }
+
+  .security { margin: 16px 0 24px; padding: 10px 14px; background: rgba(16,185,129,0.08); border-left: 3px solid var(--accent); border-radius: 4px; font-size: 0.85rem; color: var(--muted2); }
+  .security b { color: var(--accent); }
+
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 36px 20px;
+    text-align: center;
+    background: var(--surface);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: var(--surface2); }
+  .dropzone .big { font-family:'Barlow Condensed',sans-serif; font-size:1.1rem; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
+  .dropzone .small { color: var(--muted); font-size: 0.85rem; }
+  .dropzone input { display:none; }
+
+  .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin: 18px 0 12px; }
+  .toolbar .spacer { flex: 1; }
+  .stat { font-size: 0.85rem; color: var(--muted2); }
+  .stat b { color: var(--text); }
+
+  button, .btn {
+    font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:0.85rem; letter-spacing:2px; text-transform:uppercase;
+    padding: 9px 16px; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    cursor: pointer; border-radius: 4px; transition: all 0.15s;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #07120c; border-color: var(--accent); }
+  button.primary:hover { filter: brightness(1.1); }
+  button.ghost { background: transparent; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; background: var(--surface); border-radius: 6px; overflow: hidden; }
+  thead th { background: var(--surface2); text-align: left; padding: 10px 12px; font-family:'Barlow Condensed',sans-serif; font-size: 0.78rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted2); border-bottom: 1px solid var(--border); }
+  tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 0.9rem; vertical-align: middle; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr.checked { background: rgba(16,185,129,0.06); }
+  tbody tr.checked:hover { background: rgba(16,185,129,0.10); }
+  td.amt { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.date { white-space: nowrap; color: var(--muted2); font-variant-numeric: tabular-nums; }
+  td.merchant { font-weight: 500; }
+  td.chk { width: 36px; text-align: center; }
+  input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+
+  select, input[type="text"] {
+    width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px;
+    padding: 6px 8px; font-family: 'Barlow', sans-serif; font-size: 0.88rem;
+  }
+  select:focus, input[type="text"]:focus { outline: none; border-color: var(--accent); }
+
+  .col-cat { width: 200px; }
+  .col-purpose { width: 320px; }
+
+  .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+
+  .footer { margin-top: 22px; color: var(--muted); font-size: 0.78rem; text-align: center; }
+  .footer code { background: var(--surface); padding: 1px 6px; border-radius: 3px; color: var(--muted2); }
+
+  .hidden { display: none !important; }
+
+  .pill { display:inline-block; font-size:0.7rem; padding:2px 8px; border-radius:10px; background: var(--surface2); color: var(--muted2); margin-left:6px; letter-spacing:1px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AMEX <span class="sub">→ Expense Report</span></h1>
+  <div class="lede">Load your AMEX activity CSV, tick the business charges, set categories, and download an Excel file for your expense report.</div>
+
+  <div class="security">
+    <b>Privacy:</b> Everything runs in this browser tab. Your AMEX data is parsed locally and is never uploaded, logged, or sent anywhere. Close the tab and it's gone. The only network request this page makes is to load the spreadsheet writer library (no data is sent — only library code is fetched).
+  </div>
+
+  <label class="dropzone" id="dropzone" for="fileInput">
+    <div class="big">Drop AMEX activity .csv here</div>
+    <div class="small">or click to choose a file &middot; download it from amex.com → Statements &amp; Activity → "Download" → CSV</div>
+    <input type="file" id="fileInput" accept=".csv,text/csv">
+  </label>
+
+  <div id="results" class="hidden">
+    <div class="toolbar">
+      <button id="checkAll" class="ghost">Check All</button>
+      <button id="checkNone" class="ghost">Clear</button>
+      <div class="spacer"></div>
+      <div class="stat"><b id="selCount">0</b> selected &middot; total <b id="selTotal">$0.00</b><span class="pill" id="srcFile"></span></div>
+      <button id="downloadXlsx" class="primary" disabled>Download .xlsx</button>
+      <button id="downloadCsv" disabled>Download .csv</button>
+      <button id="copyClipboard" disabled>Copy rows</button>
+    </div>
+
+    <table id="chargesTable">
+      <thead>
+        <tr>
+          <th class="chk"><input type="checkbox" id="masterCheck"></th>
+          <th>Date</th>
+          <th>Merchant</th>
+          <th style="text-align:right">Amount</th>
+          <th>Category</th>
+          <th>Business purpose</th>
+        </tr>
+      </thead>
+      <tbody id="chargesBody"></tbody>
+    </table>
+
+    <div id="emptyState" class="empty hidden">No charges parsed. Make sure you downloaded the file as CSV from AMEX.</div>
+  </div>
+
+  <div class="footer">
+    Your category &amp; merchant choices are remembered locally (browser storage) so next month is faster. &middot;
+    Wipe with <code>localStorage.clear()</code> in DevTools.
+  </div>
+</div>
+
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"></script>
+<script>
+(() => {
+  'use strict';
+
+  // ---------- Configuration ----------
+  // Edit this list to match your company's allowed categories.
+  const CATEGORIES = [
+    '',
+    'Airfare',
+    'Lodging',
+    'Ground Transportation',
+    'Meals & Entertainment',
+    'Client Entertainment',
+    'Office Supplies',
+    'Software & Subscriptions',
+    'Conferences & Training',
+    'Telecom',
+    'Mileage / Tolls / Parking',
+    'Other',
+  ];
+
+  // Auto-suggest rules: ordered list of {pattern, category}. First match wins.
+  // Patterns are case-insensitive substring matches against the merchant string.
+  const RULES = [
+    // Airfare
+    [/\b(delta|united|american airlines|southwest|jetblue|alaska air|spirit|frontier|aa\.com|aircanada|british airways|lufthansa)\b/i, 'Airfare'],
+    // Lodging
+    [/\b(marriott|hilton|hyatt|sheraton|westin|courtyard|residence inn|holiday inn|hampton|airbnb|vrbo|four seasons|ritz|kimpton|ihg)\b/i, 'Lodging'],
+    // Ground transport
+    [/\b(uber|lyft|taxi|cab|amtrak|metro|caltrain|mta|septa|bart|hertz|enterprise rent|avis|budget rent|national car|zipcar|turo)\b/i, 'Ground Transportation'],
+    // Meals
+    [/\b(starbucks|dunkin|peets|pret|chipotle|sweetgreen|panera|cafe|coffee|restaurant|bistro|grill|kitchen|pizz|sushi|ramen|taqueria|doordash|grubhub|seamless|ubereats|caviar)\b/i, 'Meals & Entertainment'],
+    // Software
+    [/\b(github|gitlab|atlassian|jira|slack|notion|figma|adobe|microsoft|openai|anthropic|aws|google cloud|gcp|digitalocean|heroku|netlify|vercel|dropbox|zoom|datadog|1password|lastpass|linear|asana|monday\.com)\b/i, 'Software & Subscriptions'],
+    // Office supplies
+    [/\b(amzn|amazon|staples|office depot|fedex|ups store|usps)\b/i, 'Office Supplies'],
+    // Telecom
+    [/\b(verizon|at&t|t-mobile|comcast|xfinity|spectrum|google fi)\b/i, 'Telecom'],
+    // Parking / tolls
+    [/\b(parking|garage|toll|e-z ?pass|fastrak|spothero|parkmobile)\b/i, 'Mileage / Tolls / Parking'],
+    // Conferences
+    [/\b(eventbrite|conference|summit|meetup|registration)\b/i, 'Conferences & Training'],
+  ];
+
+  // ---------- State ----------
+  let charges = []; // {id, date, merchant, amount, category, purpose, checked}
+  const LS_KEY = 'amex_expense_merchant_map_v1';
+  const merchantMap = loadMerchantMap(); // merchantKey -> {category, purpose}
+
+  // ---------- DOM ----------
+  const $ = (id) => document.getElementById(id);
+  const dropzone = $('dropzone');
+  const fileInput = $('fileInput');
+  const results = $('results');
+  const body = $('chargesBody');
+  const emptyState = $('emptyState');
+  const selCount = $('selCount');
+  const selTotal = $('selTotal');
+  const srcFile = $('srcFile');
+  const masterCheck = $('masterCheck');
+
+  // ---------- File loading ----------
+  fileInput.addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (f) loadFile(f);
+  });
+  ['dragover', 'dragenter'].forEach(ev =>
+    dropzone.addEventListener(ev, (e) => { e.preventDefault(); dropzone.classList.add('drag'); })
+  );
+  ['dragleave', 'drop'].forEach(ev =>
+    dropzone.addEventListener(ev, (e) => { e.preventDefault(); dropzone.classList.remove('drag'); })
+  );
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const f = e.dataTransfer.files[0];
+    if (f) loadFile(f);
+  });
+
+  function loadFile(file) {
+    srcFile.textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const rows = parseCsv(e.target.result);
+        charges = normalizeRows(rows);
+        render();
+      } catch (err) {
+        alert('Could not parse this file as a CSV.\n\n' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // ---------- CSV parsing (RFC 4180-ish, handles quoted fields & commas) ----------
+  function parseCsv(text) {
+    // Strip BOM
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    const rows = [];
+    let cur = [], field = '', inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQuotes) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i++; }
+          else { inQuotes = false; }
+        } else { field += c; }
+      } else {
+        if (c === '"') inQuotes = true;
+        else if (c === ',') { cur.push(field); field = ''; }
+        else if (c === '\r') { /* ignore */ }
+        else if (c === '\n') { cur.push(field); rows.push(cur); cur = []; field = ''; }
+        else field += c;
+      }
+    }
+    if (field.length || cur.length) { cur.push(field); rows.push(cur); }
+    return rows.filter(r => r.some(v => v && v.trim().length));
+  }
+
+  function normalizeRows(rows) {
+    if (!rows.length) return [];
+    // Detect header row
+    const header = rows[0].map(h => h.trim().toLowerCase());
+    const dataRows = rows.slice(1);
+    const idx = (...names) => {
+      for (const n of names) {
+        const i = header.indexOf(n);
+        if (i !== -1) return i;
+      }
+      return -1;
+    };
+    const dateIdx = idx('date', 'transaction date', 'posting date');
+    const descIdx = idx('description', 'merchant', 'appears on your statement as');
+    const amtIdx = idx('amount', 'amt');
+
+    if (dateIdx === -1 || descIdx === -1 || amtIdx === -1) {
+      throw new Error('Could not find Date / Description / Amount columns. Header was: ' + rows[0].join(', '));
+    }
+
+    return dataRows.map((r, i) => {
+      const date = (r[dateIdx] || '').trim();
+      const merchant = cleanMerchant(r[descIdx] || '');
+      const amount = parseAmount(r[amtIdx]);
+      // AMEX downloads typically show charges as positive numbers and credits as negative.
+      // Skip payments/credits by default.
+      const memo = merchantMap[merchantKey(merchant)] || {};
+      return {
+        id: i,
+        date: normalizeDate(date),
+        merchant,
+        amount,
+        category: memo.category || autoCategory(merchant),
+        purpose: memo.purpose || '',
+        checked: amount > 0, // pre-check charges, not credits
+      };
+    }).filter(c => !Number.isNaN(c.amount));
+  }
+
+  function cleanMerchant(s) {
+    return s.replace(/\s+/g, ' ').trim();
+  }
+  function merchantKey(s) {
+    // Collapse trailing store numbers, locations, etc. — keep the brand-ish prefix.
+    return s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(' ').slice(0, 3).join(' ');
+  }
+  function parseAmount(s) {
+    if (s == null) return NaN;
+    const cleaned = String(s).replace(/[$,\s]/g, '').replace(/[()]/g, '');
+    const n = parseFloat(cleaned);
+    if (Number.isNaN(n)) return NaN;
+    // If wrapped in parens or starts with '-', it's a credit
+    if (/^\s*\(/.test(s) || /^-/.test(String(s).trim())) return -Math.abs(n);
+    return n;
+  }
+  function normalizeDate(s) {
+    // Accept MM/DD/YYYY or YYYY-MM-DD; output YYYY-MM-DD
+    const m1 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (m1) {
+      let [_, mm, dd, yy] = m1;
+      if (yy.length === 2) yy = (parseInt(yy, 10) > 50 ? '19' : '20') + yy;
+      return `${yy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`;
+    }
+    const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m2) return `${m2[1]}-${m2[2]}-${m2[3]}`;
+    return s;
+  }
+
+  function autoCategory(merchant) {
+    for (const [re, cat] of RULES) {
+      if (re.test(merchant)) return cat;
+    }
+    return '';
+  }
+
+  // ---------- Rendering ----------
+  function render() {
+    results.classList.remove('hidden');
+    body.innerHTML = '';
+    if (!charges.length) {
+      emptyState.classList.remove('hidden');
+      updateToolbar();
+      return;
+    }
+    emptyState.classList.add('hidden');
+
+    const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+    const catOptions = CATEGORIES.map(c =>
+      `<option value="${escapeAttr(c)}">${escapeHtml(c || '— choose —')}</option>`
+    ).join('');
+
+    charges.forEach((c) => {
+      const tr = document.createElement('tr');
+      if (c.checked) tr.classList.add('checked');
+      tr.dataset.id = c.id;
+      tr.innerHTML = `
+        <td class="chk"><input type="checkbox" data-act="check" ${c.checked ? 'checked' : ''}></td>
+        <td class="date">${escapeHtml(c.date)}</td>
+        <td class="merchant">${escapeHtml(c.merchant)}</td>
+        <td class="amt">${fmt.format(c.amount)}</td>
+        <td class="col-cat">
+          <select data-act="cat">${catOptions}</select>
+        </td>
+        <td class="col-purpose">
+          <input type="text" data-act="purpose" placeholder="e.g. Client lunch — Acme Q3 review" value="${escapeAttr(c.purpose)}">
+        </td>
+      `;
+      tr.querySelector('select[data-act="cat"]').value = c.category || '';
+      body.appendChild(tr);
+    });
+
+    updateToolbar();
+  }
+
+  body.addEventListener('change', onRowChange);
+  body.addEventListener('input', onRowChange);
+
+  function onRowChange(e) {
+    const tr = e.target.closest('tr');
+    if (!tr) return;
+    const id = parseInt(tr.dataset.id, 10);
+    const charge = charges.find(c => c.id === id);
+    if (!charge) return;
+    const act = e.target.dataset.act;
+    if (act === 'check') {
+      charge.checked = e.target.checked;
+      tr.classList.toggle('checked', charge.checked);
+      updateToolbar();
+    } else if (act === 'cat') {
+      charge.category = e.target.value;
+      rememberMerchant(charge);
+    } else if (act === 'purpose') {
+      charge.purpose = e.target.value;
+      rememberMerchant(charge);
+    }
+  }
+
+  function updateToolbar() {
+    const sel = charges.filter(c => c.checked);
+    const total = sel.reduce((a, c) => a + c.amount, 0);
+    selCount.textContent = sel.length;
+    selTotal.textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(total);
+    const has = sel.length > 0;
+    $('downloadXlsx').disabled = !has;
+    $('downloadCsv').disabled = !has;
+    $('copyClipboard').disabled = !has;
+    masterCheck.checked = charges.length > 0 && sel.length === charges.length;
+  }
+
+  // ---------- Toolbar actions ----------
+  $('checkAll').addEventListener('click', () => { charges.forEach(c => c.checked = true); refreshChecks(); });
+  $('checkNone').addEventListener('click', () => { charges.forEach(c => c.checked = false); refreshChecks(); });
+  masterCheck.addEventListener('change', (e) => {
+    const v = e.target.checked;
+    charges.forEach(c => c.checked = v);
+    refreshChecks();
+  });
+  function refreshChecks() {
+    [...body.querySelectorAll('tr')].forEach(tr => {
+      const id = parseInt(tr.dataset.id, 10);
+      const c = charges.find(x => x.id === id);
+      tr.querySelector('input[data-act="check"]').checked = c.checked;
+      tr.classList.toggle('checked', c.checked);
+    });
+    updateToolbar();
+  }
+
+  $('downloadXlsx').addEventListener('click', () => {
+    if (typeof XLSX === 'undefined') {
+      alert('Spreadsheet library failed to load. Use "Download .csv" instead.');
+      return;
+    }
+    const rows = selectedRows();
+    const ws = XLSX.utils.aoa_to_sheet([HEADERS, ...rows]);
+    ws['!cols'] = [
+      { wch: 12 }, // Date
+      { wch: 32 }, // Merchant
+      { wch: 12 }, // Amount
+      { wch: 24 }, // Category
+      { wch: 48 }, // Business Purpose
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
+    XLSX.writeFile(wb, suggestedFilename('xlsx'));
+  });
+
+  $('downloadCsv').addEventListener('click', () => {
+    const rows = selectedRows();
+    const csv = [HEADERS, ...rows].map(r =>
+      r.map(v => {
+        const s = String(v ?? '');
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      }).join(',')
+    ).join('\n');
+    // UTF-8 BOM helps Excel open it cleanly
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = suggestedFilename('csv');
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  $('copyClipboard').addEventListener('click', async () => {
+    const rows = selectedRows();
+    const tsv = [HEADERS, ...rows].map(r => r.join('\t')).join('\n');
+    try {
+      await navigator.clipboard.writeText(tsv);
+      flash('copyClipboard', 'Copied ✓');
+    } catch {
+      alert('Clipboard blocked. Use Download .csv instead.');
+    }
+  });
+
+  function flash(id, msg) {
+    const el = document.getElementById(id);
+    const orig = el.textContent;
+    el.textContent = msg;
+    setTimeout(() => el.textContent = orig, 1400);
+  }
+
+  const HEADERS = ['Date', 'Merchant', 'Amount', 'Category', 'Business Purpose'];
+
+  function selectedRows() {
+    return charges.filter(c => c.checked).map(c => [
+      c.date, c.merchant, Number(c.amount.toFixed(2)), c.category, c.purpose,
+    ]);
+  }
+
+  function suggestedFilename(ext) {
+    const today = new Date().toISOString().slice(0, 10);
+    return `expense-report-${today}.${ext}`;
+  }
+
+  // ---------- Merchant memory ----------
+  function loadMerchantMap() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); }
+    catch { return {}; }
+  }
+  function saveMerchantMap() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(merchantMap)); } catch {}
+  }
+  function rememberMerchant(c) {
+    const k = merchantKey(c.merchant);
+    if (!k) return;
+    merchantMap[k] = { category: c.category || '', purpose: c.purpose || '' };
+    saveMerchantMap();
+  }
+
+  // ---------- Utilities ----------
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+  function escapeAttr(s) { return escapeHtml(s); }
+})();
+</script>
+</body>
+</html>
