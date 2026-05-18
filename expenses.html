@@ -77,8 +77,9 @@
   }
   select:focus, input[type="text"]:focus { outline: none; border-color: var(--accent); }
 
-  .col-cat { width: 200px; }
-  .col-purpose { width: 320px; }
+  .col-desc { width: 340px; }
+  .col-job { width: 100px; }
+  .col-gl { width: 240px; }
 
   .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
 
@@ -92,8 +93,8 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>AMEX <span class="sub">→ Expense Report</span></h1>
-  <div class="lede">Load your AMEX activity CSV, tick the business charges, set categories, and download an Excel file for your expense report.</div>
+  <h1>AMEX <span class="sub">→ Baker Roofing Check Request</span></h1>
+  <div class="lede">Load your AMEX activity CSV, tick the business charges, set descriptions &amp; GL codes, and download a ready-to-submit Check Request form (or paste the rows straight into your monthly template).</div>
 
   <div class="security">
     <b>Privacy:</b> Everything runs in this browser tab. Your AMEX data is parsed locally and is never uploaded, logged, or sent anywhere. Close the tab and it's gone. The only network request this page makes is to load the spreadsheet writer library (no data is sent — only library code is fetched).
@@ -111,9 +112,8 @@
       <button id="checkNone" class="ghost">Clear</button>
       <div class="spacer"></div>
       <div class="stat"><b id="selCount">0</b> selected &middot; total <b id="selTotal">$0.00</b><span class="pill" id="srcFile"></span></div>
-      <button id="downloadXlsx" class="primary" disabled>Download .xlsx</button>
-      <button id="downloadCsv" disabled>Download .csv</button>
-      <button id="copyClipboard" disabled>Copy rows</button>
+      <button id="downloadXlsx" class="primary" disabled title="Generate a complete Baker Roofing Check Request form for the selected charges">Download Check Request .xlsx</button>
+      <button id="copyClipboard" disabled title="Copy 4 columns (Description, Job#, GL Account, Amount). Click cell B13 of your monthly tab in the existing template, then paste.">Copy rows for B13 paste</button>
     </div>
 
     <table id="chargesTable">
@@ -123,8 +123,9 @@
           <th>Date</th>
           <th>Merchant</th>
           <th style="text-align:right">Amount</th>
-          <th>Category</th>
-          <th>Business purpose</th>
+          <th>Description <span style="color:var(--muted);font-weight:400">(goes in col B)</span></th>
+          <th>Job #</th>
+          <th>GL Account</th>
         </tr>
       </thead>
       <tbody id="chargesBody"></tbody>
@@ -134,7 +135,7 @@
   </div>
 
   <div class="footer">
-    Your category &amp; merchant choices are remembered locally (browser storage) so next month is faster. &middot;
+    GL-code &amp; Job# choices per merchant are remembered locally so next month auto-fills. &middot;
     Wipe with <code>localStorage.clear()</code> in DevTools.
   </div>
 </div>
@@ -147,44 +148,40 @@
   'use strict';
 
   // ---------- Configuration ----------
-  // Edit this list to match your company's allowed categories.
-  const CATEGORIES = [
-    '',
-    'Airfare',
-    'Lodging',
-    'Ground Transportation',
-    'Meals & Entertainment',
-    'Client Entertainment',
-    'Office Supplies',
-    'Software & Subscriptions',
-    'Conferences & Training',
-    'Telecom',
-    'Mileage / Tolls / Parking',
-    'Other',
+  // Submitter info that lands at the top of the generated check-request form.
+  const SUBMITTER = 'Dylan Baker';
+
+  // GL accounts that appear in your Baker Roofing template. Edit as needed.
+  // `bhe` toggles the "BHE" variant (middle segment 11 vs 00) for that category.
+  const GL_ACCOUNTS = [
+    { code: '',            label: '— choose —' },
+    { code: '70076-11-00', label: '70076-11-00 — Travel (BHE)' },
+    { code: '70075-11-00', label: '70075-11-00 — Meals (BHE)' },
+    { code: '70075-00-00', label: '70075-00-00 — Meals & Entertainment' },
+    { code: '70070-00-00', label: '70070-00-00 — Fuel / Vehicle' },
   ];
 
-  // Auto-suggest rules: ordered list of {pattern, category}. First match wins.
-  // Patterns are case-insensitive substring matches against the merchant string.
+  // Auto-suggest rules: ordered list of [pattern, gl_code]. First match wins.
+  // Travel-related merchants default to the BHE travel code since that's the most common pattern
+  // in your data; flip the dropdown if the trip wasn't BHE.
   const RULES = [
-    // Airfare
-    [/\b(delta|united|american airlines|southwest|jetblue|alaska air|spirit|frontier|aa\.com|aircanada|british airways|lufthansa)\b/i, 'Airfare'],
-    // Lodging
-    [/\b(marriott|hilton|hyatt|sheraton|westin|courtyard|residence inn|holiday inn|hampton|airbnb|vrbo|four seasons|ritz|kimpton|ihg)\b/i, 'Lodging'],
-    // Ground transport
-    [/\b(uber|lyft|taxi|cab|amtrak|metro|caltrain|mta|septa|bart|hertz|enterprise rent|avis|budget rent|national car|zipcar|turo)\b/i, 'Ground Transportation'],
-    // Meals
-    [/\b(starbucks|dunkin|peets|pret|chipotle|sweetgreen|panera|cafe|coffee|restaurant|bistro|grill|kitchen|pizz|sushi|ramen|taqueria|doordash|grubhub|seamless|ubereats|caviar)\b/i, 'Meals & Entertainment'],
-    // Software
-    [/\b(github|gitlab|atlassian|jira|slack|notion|figma|adobe|microsoft|openai|anthropic|aws|google cloud|gcp|digitalocean|heroku|netlify|vercel|dropbox|zoom|datadog|1password|lastpass|linear|asana|monday\.com)\b/i, 'Software & Subscriptions'],
-    // Office supplies
-    [/\b(amzn|amazon|staples|office depot|fedex|ups store|usps)\b/i, 'Office Supplies'],
-    // Telecom
-    [/\b(verizon|at&t|t-mobile|comcast|xfinity|spectrum|google fi)\b/i, 'Telecom'],
-    // Parking / tolls
-    [/\b(parking|garage|toll|e-z ?pass|fastrak|spothero|parkmobile)\b/i, 'Mileage / Tolls / Parking'],
-    // Conferences
-    [/\b(eventbrite|conference|summit|meetup|registration)\b/i, 'Conferences & Training'],
+    // Travel (Airfare / Lodging / Ground / Parking) — default to BHE travel code
+    [/\b(delta|united|american airlines|southwest|jetblue|alaska air|spirit|frontier|aa\.com|aircanada|british airways|lufthansa)\b/i, '70076-11-00'],
+    [/\b(marriott|hilton|hyatt|sheraton|westin|courtyard|residence inn|holiday inn|hampton|airbnb|vrbo|four seasons|ritz|kimpton|ihg|fontainebleau)\b/i, '70076-11-00'],
+    [/\b(uber|lyft|taxi|cab|amtrak|hertz|enterprise rent|avis|budget rent|national car|zipcar|turo)\b/i, '70076-11-00'],
+    [/\b(rdu parking|airport parking|parking|garage|toll|e-z ?pass|fastrak|spothero|parkmobile)\b/i, '70076-11-00'],
+    // Fuel
+    [/\b(circle k|sheetz|marathon|shell|exxon|chevron|bp|sunoco|wawa|speedway|7-eleven fuel|valero|mobil)\b/i, '70070-00-00'],
+    // Meals (general, non-BHE default — user toggles to -11-00 for BHE lunches)
+    [/\b(starbucks|dunkin|peets|pret|chipotle|sweetgreen|panera|cafe|café|coffee|restaurant|bistro|grill|kitchen|pizz|sushi|ramen|taqueria|tavern|matsumoto|wasabi|abbey road|napa|ruth's chris|mr henry|village tavern|carolina ale|doordash|grubhub|seamless|ubereats|caviar)\b/i, '70075-00-00'],
+    // Software / Subscriptions — usually expensable as office/IT; default to non-BHE meals bucket is wrong,
+    // so leave blank and let user pick (rare on AMEX personal).
+    // Tickets / client entertainment
+    [/\b(lenovo center|pnc arena|hurricanes|stubhub|ticketmaster|eventbrite)\b/i, '70075-00-00'],
   ];
+
+  // Months for the form header dropdown.
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
   // ---------- State ----------
   let charges = []; // {id, date, merchant, amount, category, purpose, checked}
@@ -292,8 +289,9 @@
         date: normalizeDate(date),
         merchant,
         amount,
-        category: memo.category || autoCategory(merchant),
-        purpose: memo.purpose || '',
+        gl: memo.gl || autoGl(merchant),
+        job: memo.job || '',
+        description: memo.description || merchant, // pre-fill description with merchant; user edits to add context
         checked: amount > 0, // pre-check charges, not credits
       };
     }).filter(c => !Number.isNaN(c.amount));
@@ -328,9 +326,9 @@
     return s;
   }
 
-  function autoCategory(merchant) {
-    for (const [re, cat] of RULES) {
-      if (re.test(merchant)) return cat;
+  function autoGl(merchant) {
+    for (const [re, code] of RULES) {
+      if (re.test(merchant)) return code;
     }
     return '';
   }
@@ -348,8 +346,8 @@
 
     const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
-    const catOptions = CATEGORIES.map(c =>
-      `<option value="${escapeAttr(c)}">${escapeHtml(c || '— choose —')}</option>`
+    const glOptions = GL_ACCOUNTS.map(g =>
+      `<option value="${escapeAttr(g.code)}">${escapeHtml(g.label)}</option>`
     ).join('');
 
     charges.forEach((c) => {
@@ -361,14 +359,17 @@
         <td class="date">${escapeHtml(c.date)}</td>
         <td class="merchant">${escapeHtml(c.merchant)}</td>
         <td class="amt">${fmt.format(c.amount)}</td>
-        <td class="col-cat">
-          <select data-act="cat">${catOptions}</select>
+        <td class="col-desc">
+          <input type="text" data-act="desc" placeholder="e.g. Wasabi - BHE Lunch 1/16" value="${escapeAttr(c.description)}">
         </td>
-        <td class="col-purpose">
-          <input type="text" data-act="purpose" placeholder="e.g. Client lunch — Acme Q3 review" value="${escapeAttr(c.purpose)}">
+        <td class="col-job">
+          <input type="text" data-act="job" placeholder="(opt)" value="${escapeAttr(c.job)}">
+        </td>
+        <td class="col-gl">
+          <select data-act="gl">${glOptions}</select>
         </td>
       `;
-      tr.querySelector('select[data-act="cat"]').value = c.category || '';
+      tr.querySelector('select[data-act="gl"]').value = c.gl || '';
       body.appendChild(tr);
     });
 
@@ -389,11 +390,14 @@
       charge.checked = e.target.checked;
       tr.classList.toggle('checked', charge.checked);
       updateToolbar();
-    } else if (act === 'cat') {
-      charge.category = e.target.value;
+    } else if (act === 'gl') {
+      charge.gl = e.target.value;
       rememberMerchant(charge);
-    } else if (act === 'purpose') {
-      charge.purpose = e.target.value;
+    } else if (act === 'desc') {
+      charge.description = e.target.value;
+      rememberMerchant(charge);
+    } else if (act === 'job') {
+      charge.job = e.target.value;
       rememberMerchant(charge);
     }
   }
@@ -405,7 +409,6 @@
     selTotal.textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(total);
     const has = sel.length > 0;
     $('downloadXlsx').disabled = !has;
-    $('downloadCsv').disabled = !has;
     $('copyClipboard').disabled = !has;
     masterCheck.checked = charges.length > 0 && sel.length === charges.length;
   }
@@ -428,50 +431,109 @@
     updateToolbar();
   }
 
+  // Build a full Baker Roofing Check Request form mirroring the company template:
+  //   Row 2:  header banner
+  //   Row 4:  PAYABLE TO   |  DATE  | <today>
+  //   Row 5:  <submitter>  | VENDOR#
+  //   Row 11: <Month> Charges | JOB NO. | GL ACCOUNT | AMOUNT
+  //   Rows 13+: line items (B C D E)
+  //   TOTAL row with =SUM(...)
+  //   Footer: SPECIAL INSTRUCTIONS | SUBMITTED BY: | <submitter>
+  //                                | APPROVED BY:
   $('downloadXlsx').addEventListener('click', () => {
     if (typeof XLSX === 'undefined') {
-      alert('Spreadsheet library failed to load. Use "Download .csv" instead.');
+      alert('Spreadsheet library failed to load. Try "Copy rows" and paste into your template instead.');
       return;
     }
     const rows = selectedRows();
-    const ws = XLSX.utils.aoa_to_sheet([HEADERS, ...rows]);
-    ws['!cols'] = [
-      { wch: 12 }, // Date
-      { wch: 32 }, // Merchant
-      { wch: 12 }, // Amount
-      { wch: 24 }, // Category
-      { wch: 48 }, // Business Purpose
-    ];
+    const monthIdx = dominantMonth();
+    const monthLabel = (monthIdx == null ? '' : MONTHS[monthIdx]) + ' Charges';
+    const today = new Date();
+    const todayStr = `${(today.getMonth()+1).toString().padStart(2,'0')}/${today.getDate().toString().padStart(2,'0')}/${today.getFullYear()}`;
+
+    // Build a 2D grid indexed by Excel column letters. We'll use aoa_to_sheet with column A unused
+    // so column letters line up exactly with the template (B,C,D,E).
+    const FIRST_ITEM_ROW = 13; // 1-indexed in Excel
+    const lastItemRow = FIRST_ITEM_ROW + rows.length - 1;
+    const totalRow = Math.max(lastItemRow + 1, FIRST_ITEM_ROW + 1);
+
+    const cells = {}; // "B2" -> { v, t, f? }
+    const setS = (ref, v) => { cells[ref] = { v: String(v), t: 's' }; };
+    const setN = (ref, v) => { cells[ref] = { v: Number(v), t: 'n' }; };
+    const setF = (ref, f) => { cells[ref] = { t: 'n', f: f }; };
+
+    setS('B2', 'BAKER ROOFING COMPANY CHECK REQUEST');
+    setS('D2', 'PETTY CASH');
+
+    setS('B4', 'PAYABLE TO'); setS('D4', 'DATE'); setS('E4', todayStr);
+    setS('B5', SUBMITTER);    setS('D5', 'VENDOR#');
+
+    setS('B11', monthLabel);
+    setS('C11', 'JOB NO.');
+    setS('D11', 'GL ACCOUNT');
+    setS('E11', 'AMOUNT');
+
+    rows.forEach((r, i) => {
+      const row = FIRST_ITEM_ROW + i;
+      const [desc, job, gl, amt] = r;
+      if (desc) setS(`B${row}`, desc);
+      if (job)  setS(`C${row}`, job);
+      if (gl)   setS(`D${row}`, gl);
+      setN(`E${row}`, amt);
+    });
+
+    setS(`D${totalRow}`, 'TOTAL');
+    if (rows.length > 0) {
+      setF(`E${totalRow}`, `SUM(E${FIRST_ITEM_ROW}:E${lastItemRow})`);
+    } else {
+      setN(`E${totalRow}`, 0);
+    }
+
+    const sigRow = totalRow + 2;
+    setS(`B${sigRow}`, 'SPECIAL INSTRUCTIONS');
+    setS(`D${sigRow}`, 'SUBMITTED BY:');
+    setS(`E${sigRow}`, SUBMITTER);
+    setS(`D${sigRow + 2}`, 'APPROVED BY:');
+
+    // Apply number formatting to amount cells + total
+    for (let i = 0; i < rows.length; i++) {
+      const ref = `E${FIRST_ITEM_ROW + i}`;
+      cells[ref].z = '"$"#,##0.00';
+    }
+    if (cells[`E${totalRow}`]) cells[`E${totalRow}`].z = '"$"#,##0.00';
+
+    // Compute sheet range
+    const maxRow = sigRow + 3;
+    const ws = {
+      '!ref': `A1:E${maxRow}`,
+      '!cols': [
+        { wch: 3 },   // A (unused)
+        { wch: 44 },  // B Description
+        { wch: 14 },  // C Job No.
+        { wch: 16 },  // D GL Account / labels
+        { wch: 14 },  // E Amount
+      ],
+      '!merges': [
+        // merge banner across B2:C2 for the title (visual nicety)
+      ],
+    };
+    Object.assign(ws, cells);
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
+    const sheetName = (monthIdx == null ? 'Expenses' : MONTHS[monthIdx]) + ' Expenses';
+    XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
     XLSX.writeFile(wb, suggestedFilename('xlsx'));
   });
 
-  $('downloadCsv').addEventListener('click', () => {
-    const rows = selectedRows();
-    const csv = [HEADERS, ...rows].map(r =>
-      r.map(v => {
-        const s = String(v ?? '');
-        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-      }).join(',')
-    ).join('\n');
-    // UTF-8 BOM helps Excel open it cleanly
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = suggestedFilename('csv');
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-
+  // Clipboard: 4 columns (B C D E) — click cell B13 of your template and paste.
   $('copyClipboard').addEventListener('click', async () => {
     const rows = selectedRows();
-    const tsv = [HEADERS, ...rows].map(r => r.join('\t')).join('\n');
+    const tsv = rows.map(r => r.join('\t')).join('\n');
     try {
       await navigator.clipboard.writeText(tsv);
       flash('copyClipboard', 'Copied ✓');
     } catch {
-      alert('Clipboard blocked. Use Download .csv instead.');
+      alert('Clipboard blocked by browser. Use Download .xlsx instead.');
     }
   });
 
@@ -482,17 +544,46 @@
     setTimeout(() => el.textContent = orig, 1400);
   }
 
-  const HEADERS = ['Date', 'Merchant', 'Amount', 'Category', 'Business Purpose'];
+  // Output column order matches the Baker Roofing template line-items (B C D E):
+  // Description | Job # | GL Account | Amount
+  const HEADERS = ['Description', 'Job #', 'GL Account', 'Amount'];
 
   function selectedRows() {
     return charges.filter(c => c.checked).map(c => [
-      c.date, c.merchant, Number(c.amount.toFixed(2)), c.category, c.purpose,
+      c.description, c.job, c.gl, Number(c.amount.toFixed(2)),
     ]);
   }
 
   function suggestedFilename(ext) {
-    const today = new Date().toISOString().slice(0, 10);
-    return `expense-report-${today}.${ext}`;
+    const m = dominantMonth();
+    const monthName = m == null ? 'export' : MONTHS[m].toLowerCase();
+    const year = dominantYear() ?? new Date().getFullYear();
+    return `check-request-${monthName}-${year}.${ext}`;
+  }
+
+  function dominantMonth() {
+    const counts = {};
+    charges.filter(c => c.checked).forEach(c => {
+      const m = (c.date.match(/^\d{4}-(\d{2})/) || [])[1];
+      if (m) counts[m] = (counts[m] || 0) + 1;
+    });
+    let best = null, bestN = 0;
+    for (const k of Object.keys(counts)) {
+      if (counts[k] > bestN) { best = parseInt(k, 10) - 1; bestN = counts[k]; }
+    }
+    return best;
+  }
+  function dominantYear() {
+    const counts = {};
+    charges.filter(c => c.checked).forEach(c => {
+      const y = (c.date.match(/^(\d{4})/) || [])[1];
+      if (y) counts[y] = (counts[y] || 0) + 1;
+    });
+    let best = null, bestN = 0;
+    for (const k of Object.keys(counts)) {
+      if (counts[k] > bestN) { best = parseInt(k, 10); bestN = counts[k]; }
+    }
+    return best;
   }
 
   // ---------- Merchant memory ----------
@@ -506,7 +597,9 @@
   function rememberMerchant(c) {
     const k = merchantKey(c.merchant);
     if (!k) return;
-    merchantMap[k] = { category: c.category || '', purpose: c.purpose || '' };
+    // Don't remember per-row free-text descriptions verbatim (they often include dates);
+    // but DO remember the GL code + job # the user picked for this merchant.
+    merchantMap[k] = { gl: c.gl || '', job: c.job || '' };
     saveMerchantMap();
   }
 
