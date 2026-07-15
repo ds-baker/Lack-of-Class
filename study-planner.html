@@ -11,6 +11,24 @@
     --card:#ffffff; --shadow:0 6px 20px rgba(80,60,120,0.10);
     --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444;
     --radius:18px;
+    --accent-a:#ff6b9d; --accent-b:#9b5de5; --accent-solid:#22c55e;
+    --pill-bg:#f3eefc; --pill-ink:#6b46c1;
+    --hero:linear-gradient(135deg,#fff,#fdf5ff);
+  }
+  /* ===== Love Island USA theme — tropical villa ===== */
+  body[data-theme="loveisland"]{
+    --bg1:#ffd0e6; --bg2:#ffe6a8; --bg3:#b5f2ec;
+    --accent-a:#ff2e88; --accent-b:#ff7a4d; --accent-solid:#ff2e88;
+    --pill-bg:#ffe0ee; --pill-ink:#d61f6f;
+    --hero:linear-gradient(135deg,#fff,#fff0f6);
+  }
+  /* ===== Outer Banks theme — OBX ocean & gold ===== */
+  body[data-theme="outerbanks"]{
+    --bg1:#cfeef0; --bg2:#bfe6d2; --bg3:#f5ead4;
+    --ink:#173a3f; --muted:#5f7d80;
+    --accent-a:#0d7c86; --accent-b:#e0a83b; --accent-solid:#0d7c86;
+    --pill-bg:#e2f2ee; --pill-ink:#0d5c63;
+    --hero:linear-gradient(135deg,#fff,#f0f8f7);
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{height:100%;}
@@ -28,7 +46,7 @@
   header.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px;}
   .logo{
     width:48px;height:48px;border-radius:14px;flex:none;
-    background:linear-gradient(135deg,#ff6b9d,#9b5de5);
+    background:linear-gradient(135deg,var(--accent-a),var(--accent-b));
     display:flex;align-items:center;justify-content:center;font-size:1.6rem;
     box-shadow:var(--shadow);
   }
@@ -45,7 +63,7 @@
     box-shadow:var(--shadow);transition:transform .12s,color .12s;
   }
   .tab:hover{transform:translateY(-1px);color:var(--ink);}
-  .tab.active{background:linear-gradient(135deg,#ff6b9d,#9b5de5);color:#fff;}
+  .tab.active{background:linear-gradient(135deg,var(--accent-a),var(--accent-b));color:#fff;}
 
   .panel{display:none;animation:fade .25s ease;}
   .panel.active{display:block;}
@@ -66,21 +84,21 @@
   .bar > i{display:block;height:100%;background:var(--c,#999);border-radius:999px;}
   .progress-meta{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);margin-top:6px;}
   .tile-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;}
-  .pill{font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#f3eefc;color:#6b46c1;}
+  .pill{font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--pill-bg);color:var(--pill-ink);}
   .btn-mini{font:inherit;font-size:.74rem;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:999px;padding:5px 10px;cursor:pointer;}
   .btn-mini:hover{color:var(--ink);border-color:#d8cff0;}
 
   /* Buttons */
-  .btn{font:inherit;font-weight:700;border:none;cursor:pointer;border-radius:12px;padding:10px 16px;background:linear-gradient(135deg,#ff6b9d,#9b5de5);color:#fff;box-shadow:var(--shadow);transition:transform .1s;}
+  .btn{font:inherit;font-weight:700;border:none;cursor:pointer;border-radius:12px;padding:10px 16px;background:linear-gradient(135deg,var(--accent-a),var(--accent-b));color:#fff;box-shadow:var(--shadow);transition:transform .1s;}
   .btn:hover{transform:translateY(-1px);}
   .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none;}
   .btn.ok{background:linear-gradient(135deg,#22c55e,#0ea5a3);}
   .btn.sm{padding:7px 12px;font-size:.82rem;border-radius:10px;}
 
   /* Today */
-  .today-hero{display:flex;gap:20px;flex-wrap:wrap;align-items:center;background:linear-gradient(135deg,#fff,#fdf5ff);}
+  .today-hero{display:flex;gap:20px;flex-wrap:wrap;align-items:center;background:var(--hero);}
   .ring{--p:0;width:120px;height:120px;border-radius:50%;flex:none;
-    background:conic-gradient(#22c55e calc(var(--p)*1%), #eee 0);
+    background:conic-gradient(var(--accent-solid) calc(var(--p)*1%), #eee 0);
     display:flex;align-items:center;justify-content:center;position:relative;}
   .ring::after{content:'';position:absolute;inset:12px;background:#fff;border-radius:50%;}
   .ring b{position:relative;z-index:1;font-size:1.5rem;}
@@ -100,13 +118,15 @@
   .t-body{flex:1;min-width:0;}
   .t-title{font-weight:700;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .t-sub{font-size:.72rem;color:var(--muted);margin-top:1px;}
-  .t-type{font-size:.68rem;font-weight:800;padding:3px 8px;border-radius:999px;background:#f3eefc;color:#6b46c1;white-space:nowrap;}
+  .t-type{font-size:.68rem;font-weight:800;padding:3px 8px;border-radius:999px;background:var(--pill-bg);color:var(--pill-ink);white-space:nowrap;}
   .t-min{font-size:.72rem;color:var(--muted);white-space:nowrap;min-width:44px;text-align:right;}
+  .t-edit{border:none;background:transparent;cursor:pointer;color:var(--muted);font-size:1rem;padding:2px 6px;border-radius:8px;}
+  .t-edit:hover{color:var(--ink);background:var(--pill-bg);}
 
   /* Week board */
   .board{display:grid;grid-template-columns:repeat(7,minmax(150px,1fr));gap:10px;overflow-x:auto;padding-bottom:8px;}
   .day-col{background:rgba(255,255,255,.7);border-radius:14px;padding:8px;min-height:120px;display:flex;flex-direction:column;}
-  .day-col.today{outline:2px solid #9b5de5;}
+  .day-col.today{outline:2px solid var(--accent-b);}
   .day-col.over{background:#f6ecff;}
   .day-col.off{opacity:.55;}
   .day-head{font-size:.78rem;font-weight:800;text-align:center;margin-bottom:6px;}
@@ -122,7 +142,7 @@
   .mcell{min-height:70px;background:rgba(255,255,255,.7);border-radius:10px;padding:6px;font-size:.72rem;cursor:pointer;transition:background .1s;}
   .mcell:hover{background:#fff;}
   .mcell.blank{background:transparent;cursor:default;}
-  .mcell.today{outline:2px solid #9b5de5;}
+  .mcell.today{outline:2px solid var(--accent-b);}
   .mcell .dn{font-weight:800;}
   .mcell .load{margin-top:4px;font-size:.66rem;color:#fff;background:var(--ok);border-radius:6px;padding:1px 4px;display:inline-block;}
   .mcell .load.warn{background:var(--warn);}
@@ -135,7 +155,7 @@
   textarea{width:100%;min-height:150px;resize:vertical;}
   .day-toggle{display:flex;gap:5px;flex-wrap:wrap;}
   .day-toggle button{font:inherit;font-size:.75rem;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:9px;padding:7px 10px;cursor:pointer;width:44px;}
-  .day-toggle button.on{background:#9b5de5;color:#fff;border-color:#9b5de5;}
+  .day-toggle button.on{background:var(--accent-b);color:#fff;border-color:var(--accent-b);}
   .section-title{font-size:1.05rem;font-weight:800;margin:6px 0 12px;display:flex;align-items:center;gap:8px;}
 
   /* Modal */
@@ -223,6 +243,15 @@
 
   <!-- SETTINGS -->
   <section id="settings" class="panel">
+    <div class="card" style="margin-bottom:16px;">
+      <div class="section-title">🎨 Make it hers</div>
+      <label class="fld" style="margin-bottom:14px;max-width:360px;">Planner name (put her name here!)
+        <input id="appTitle" placeholder="My Study Planner">
+      </label>
+      <div class="fld" style="margin-bottom:8px;">Theme</div>
+      <div id="themePicker" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+    </div>
+
     <div class="card" style="margin-bottom:16px;">
       <div class="section-title">🎯 Finish line</div>
       <div class="row">
@@ -358,22 +387,80 @@ function seedClasses(){
   return {classes, tasks};
 }
 
+/* ---------- themes ---------- */
+const THEMES = {
+  sunshine: {
+    label:"☀️ Sunshine", logo:"🌱", tagline:"Small steps, big finish 🌟",
+    todayTitle:"📌 Today's stack",
+    offMsg:"It's a day off — relax! 🎉 (You can change work days in Settings.)",
+    clearMsg:"Nothing scheduled today. Nice work getting ahead! 🎉",
+    msgs:[
+      "One step at a time. You've got this! 💪",
+      "Small chunks beat one big mountain. Let's go! ⛰️",
+      "Every task you finish is one less to worry about. ✨",
+      "Progress, not perfection. Knock out today's stack! 🌟",
+      "Future-you will be so glad you did this today. 💛"
+    ]
+  },
+  loveisland: {
+    label:"🌴 Love Island", logo:"🌴", tagline:"Crack on, bombshell ☀️💗",
+    todayTitle:"🌴 Today in the Villa",
+    offMsg:"Day off in the villa — go get your sun ☀️🍹 (change work days in Settings).",
+    clearMsg:"You've cleared the villa for today! Absolute grafter 💗🔥",
+    msgs:[
+      "I've got a text! 📱 Time to crack on with today's tasks 💦",
+      "You're my type on paper 📄 — let's finish these 💗",
+      "Grafting hard today pays off, hun 🌴☀️",
+      "Don't be a mug — smash today's list 💪🔥",
+      "It is what it is… but today's list is tiny 💅✨"
+    ]
+  },
+  outerbanks: {
+    label:"🌊 Outer Banks", logo:"🌊", tagline:"Pogue Life 🏝️ — P4L",
+    todayTitle:"🌊 Today's Catch",
+    offMsg:"No worries — day off. Hit the beach 🏖️ (change work days in Settings).",
+    clearMsg:"Nothing left today — the gold's yours. Pogue Life 🏝️✨",
+    msgs:[
+      "Pogue Life 🏝️ — knock these out, then hit the beach 🌊",
+      "The gold's on the other side of this list 🧭",
+      "Steady on the boat ⛵ — small waves today, no worries 😎",
+      "P4L: handle today's few, you got this 🤙",
+      "Full send on today's list, then Chateau time 🌅"
+    ]
+  }
+};
+function theme(){ return THEMES[(STATE&&STATE.settings&&STATE.settings.theme)] || THEMES.sunshine; }
+
 function defaultState(){
   const seeded = seedClasses();
   return {
     version:1,
-    settings:{ targetDate:"2026-08-25", dailyCapMin:null, workDays:[0,1,2,3,4,5,6] },
+    settings:{ targetDate:"2026-08-25", dailyCapMin:null, workDays:[0,1,2,3,4,5,6], theme:"sunshine", appTitle:"My Study Planner" },
     categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
     classes: seeded.classes,
     tasks: seeded.tasks
   };
 }
 
+function migrate(st){
+  st.settings = st.settings || {};
+  const s=st.settings;
+  if(!s.theme) s.theme="sunshine";
+  if(s.appTitle==null) s.appTitle="My Study Planner";
+  if(!Array.isArray(s.workDays)) s.workDays=[0,1,2,3,4,5,6];
+  if(!s.targetDate) s.targetDate="2026-08-25";
+  if(s.dailyCapMin===undefined) s.dailyCapMin=null;
+  if(!st.categories) st.categories=JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+  if(!Array.isArray(st.classes)) st.classes=[];
+  if(!Array.isArray(st.tasks)) st.tasks=[];
+  return st;
+}
+
 /* ---------- persistence ---------- */
 const LS_KEY="studyPlanner.v1";
 let STATE = null;
 function load(){
-  try{ const raw=localStorage.getItem(LS_KEY); if(raw){STATE=JSON.parse(raw); return;} }catch(e){}
+  try{ const raw=localStorage.getItem(LS_KEY); if(raw){STATE=migrate(JSON.parse(raw)); return;} }catch(e){}
   STATE=defaultState();
 }
 function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(STATE)); }catch(e){} }
@@ -447,6 +534,7 @@ function recompute(){ SCHED=computeSchedule(); }
 
 function render(){
   recompute(); save();
+  applyTheme();
   renderCountdown();
   renderToday();
   renderWeek();
@@ -464,13 +552,12 @@ function renderCountdown(){
   el.textContent = remaining+" assignments left · "+dleft+" days until "+prettyDate(s.targetDate);
 }
 
-const MSGS=[
-  "One step at a time. You've got this! 💪",
-  "Small chunks beat one big mountain. Let's go! ⛰️",
-  "Every task you finish is one less to worry about. ✨",
-  "Progress, not perfection. Knock out today's stack! 🌟",
-  "Future-you will be so glad you did this today. 💛"
-];
+function applyTheme(){
+  const th=theme();
+  document.body.setAttribute("data-theme", STATE.settings.theme||"sunshine");
+  document.querySelector(".logo").textContent=th.logo;
+  document.querySelector(".title-block h1").textContent=STATE.settings.appTitle||"My Study Planner";
+}
 
 function renderToday(){
   const el=document.getElementById("today");
@@ -482,13 +569,14 @@ function renderToday(){
   const doneToday = STATE.tasks.filter(t=>t.status==="done" && t.doneDate===today);
   const totalToday = list.length + doneToday.length;
   const pct = totalToday? Math.round(doneToday.length/totalToday*100) : (isWork?0:100);
-  const msg = MSGS[ (parseD(today).getDate()) % MSGS.length ];
+  const th=theme();
+  const msg = th.msgs[ (parseD(today).getDate()) % th.msgs.length ];
 
   let html = `<div class="card today-hero" style="margin-bottom:16px;">
       <div class="ring" style="--p:${pct}"><div><b>${pct}%</b><span>today</span></div></div>
       <div class="hero-msg">
         <h2>${prettyDate(today)}</h2>
-        <p>${ !isWork ? "It's a day off — relax! 🎉 (You can change work days in Settings.)" : (list.length? msg : "Nothing scheduled today. Nice work getting ahead! 🎉") }</p>
+        <p>${ !isWork ? th.offMsg : (list.length? msg : th.clearMsg) }</p>
         <div class="hero-stats">
           <div><b>${doneToday.length}/${totalToday||0}</b><span>done today</span></div>
           <div><b>${minToStr(list.reduce((a,t)=>a+t.min,0))}</b><span>left today</span></div>
@@ -498,7 +586,7 @@ function renderToday(){
     </div>`;
 
   if(list.length){
-    html += `<div class="section-title">📌 Today's stack</div>`;
+    html += `<div class="section-title">${th.todayTitle}</div>`;
     html += list.map(t=>taskRow(t)).join("");
   } else if(isWork){
     html += `<div class="card empty"><div class="em">🎉</div><p>All clear for today. Peek at <b>This Week</b> to get ahead if you're feeling it.</p></div>`;
@@ -522,6 +610,7 @@ function taskRow(t){
       </div>
       <span class="t-type">${esc(t.type)}</span>
       <span class="t-min">${minToStr(t.min)}</span>
+      <button class="t-edit" data-edit="${t.id}" title="Edit this assignment">✎</button>
     </div>`;
 }
 
@@ -529,9 +618,57 @@ function wireTaskRows(scope){
   scope.querySelectorAll("[data-check]").forEach(el=>{
     el.onclick=(e)=>{ e.stopPropagation(); toggleDone(el.getAttribute("data-check")); };
   });
+  scope.querySelectorAll("[data-edit]").forEach(el=>{
+    el.onclick=(e)=>{ e.stopPropagation(); openEditTask(el.getAttribute("data-edit")); };
+  });
   scope.querySelectorAll(".task[draggable]").forEach(el=>{
     el.addEventListener("dragstart",ev=>{ ev.dataTransfer.setData("text/plain", el.getAttribute("data-id")); });
   });
+}
+
+function openEditTask(id){
+  const t=STATE.tasks.find(x=>x.id===id); if(!t) return;
+  const c=classById(t.classId)||{name:""};
+  const catOpts=Object.keys(STATE.categories).map(n=>`<option value="${esc(n)}" ${n===t.type?'selected':''}>${esc(n)}</option>`).join("");
+  openModal(`
+    <button class="close-x" onclick="closeModal()">×</button>
+    <h3>✎ Edit assignment</h3>
+    <p class="save-note" style="margin-bottom:12px;">${esc(c.name)}</p>
+    <label class="fld" style="margin-bottom:10px;">Title
+      <input id="etTitle" value="${esc(t.title)}">
+    </label>
+    <div class="row" style="margin-bottom:12px;">
+      <label class="fld">Type
+        <select id="etType">${catOpts}</select>
+      </label>
+      <label class="fld">Minutes
+        <input id="etMin" type="number" min="0" step="5" value="${t.min}">
+      </label>
+      <span class="save-note" style="max-width:230px;">Pick a type to auto-fill the usual time, then fine-tune the minutes for this specific one.</span>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:space-between;">
+      <button class="btn ok sm" onclick="saveEditTask('${id}')">Save</button>
+      <button class="btn ghost sm" style="color:var(--danger);" onclick="deleteTask('${id}')">🗑️ Delete</button>
+    </div>
+  `);
+  // when type changes, suggest that type's default minutes
+  document.getElementById("etType").onchange=function(){
+    const cat=STATE.categories[this.value];
+    if(cat) document.getElementById("etMin").value=cat.min;
+  };
+}
+function saveEditTask(id){
+  const t=STATE.tasks.find(x=>x.id===id); if(!t) return;
+  const title=document.getElementById("etTitle").value.trim();
+  if(title) t.title=title;
+  t.type=document.getElementById("etType").value;
+  t.min=Math.max(0,Number(document.getElementById("etMin").value)||0);
+  delete t.placeholder;
+  closeModal(); render();
+}
+function deleteTask(id){
+  STATE.tasks=STATE.tasks.filter(x=>x.id!==id);
+  closeModal(); render();
 }
 
 function toggleDone(id){
@@ -652,6 +789,19 @@ function renderClasses(){
 
 /* ----- settings ----- */
 function renderSettings(){
+  // personalization
+  const at=document.getElementById("appTitle");
+  at.value=STATE.settings.appTitle||"";
+  at.onchange=function(){ STATE.settings.appTitle=this.value.trim()||"My Study Planner"; render(); };
+  const SW={sunshine:["#ff6b9d","#9b5de5"],loveisland:["#ff2e88","#ff7a4d"],outerbanks:["#0d7c86","#e0a83b"]};
+  const tp=document.getElementById("themePicker");
+  tp.innerHTML=Object.keys(THEMES).map(k=>{
+    const th=THEMES[k], active=STATE.settings.theme===k, sw=SW[k]||SW.sunshine;
+    return `<button data-theme-btn="${k}" style="cursor:pointer;font:inherit;font-weight:800;color:var(--ink);border:2px solid ${active?'var(--accent-b)':'var(--line)'};background:#fff;border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:9px;">
+       <span style="width:36px;height:24px;border-radius:7px;background:linear-gradient(135deg,${sw[0]},${sw[1]});"></span>${th.label}${active?' ✓':''}</button>`;
+  }).join("");
+  tp.querySelectorAll("[data-theme-btn]").forEach(b=>b.onclick=()=>{ STATE.settings.theme=b.getAttribute("data-theme-btn"); render(); });
+
   document.getElementById("targetDate").value=STATE.settings.targetDate;
   document.getElementById("dailyCap").value=STATE.settings.dailyCapMin||"";
   const dt=document.getElementById("dayToggle");
@@ -804,7 +954,7 @@ document.getElementById("importFileBtn").onclick=()=>document.getElementById("im
 document.getElementById("importFile").onchange=(e)=>{
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader();
-  r.onload=()=>{ try{ STATE=JSON.parse(r.result); save(); initWeek(); initMonth(); render(); alert("Backup loaded ✅"); }catch(err){ alert("Couldn't read that file."); } };
+  r.onload=()=>{ try{ STATE=migrate(JSON.parse(r.result)); save(); initWeek(); initMonth(); render(); alert("Backup loaded ✅"); }catch(err){ alert("Couldn't read that file."); } };
   r.readAsText(f);
 };
 document.getElementById("resetBtn").onclick=()=>{
