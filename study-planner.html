@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Study Planner</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
   :root{
     --bg1:#fef3ff; --bg2:#e0f2ff; --bg3:#fff7e6;
@@ -40,7 +43,24 @@
     min-height:100vh;
     -webkit-font-smoothing:antialiased;
   }
-  .wrap{max-width:1150px;margin:0 auto;padding:18px 16px 80px;}
+  .wrap{max-width:1150px;margin:0 auto;padding:18px 16px 80px;display:none;}
+  body.authed .wrap{display:block;}
+
+  /* Login gate */
+  .gate{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;
+        background:linear-gradient(135deg,var(--bg1),var(--bg2) 55%,var(--bg3));}
+  body.authed .gate{display:none;}
+  .gate-card{background:#fff;border-radius:22px;box-shadow:0 20px 60px rgba(80,60,120,.25);padding:30px 26px;max-width:360px;width:100%;text-align:center;}
+  .gate-card .logo{margin:0 auto 14px;}
+  .gate-card h2{font-size:1.5rem;margin-bottom:4px;}
+  .gate-card p{color:var(--muted);font-size:.9rem;margin-bottom:18px;}
+  .gate-card input{width:100%;margin-bottom:10px;text-align:center;font-size:1rem;}
+  .gate-card .btn{width:100%;margin-top:4px;}
+  .login-err{color:var(--danger);font-size:.82rem;margin-top:10px;min-height:1em;}
+  .login-hint{color:var(--muted);font-size:.72rem;margin-top:14px;line-height:1.5;}
+  .sync-chip{font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:5px;}
+  .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);}
+  .sync-dot.off{background:var(--muted);}
 
   /* Header */
   header.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px;}
@@ -178,6 +198,22 @@
 </style>
 </head>
 <body>
+
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="logo" id="gateLogo">🌱</div>
+    <h2>Study Planner</h2>
+    <p id="gateMsg">Connecting…</p>
+    <div id="loginForm" style="display:none;">
+      <input id="loginEmail" type="email" placeholder="Family email" autocomplete="username">
+      <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password">
+      <button class="btn" id="loginBtn">Log in</button>
+      <div class="login-err" id="loginErr"></div>
+      <div class="login-hint">Use the family email &amp; password you set up. Everyone in the family uses the same login, on any device.</div>
+    </div>
+  </div>
+</div>
+
 <div class="wrap">
 
   <header class="top">
@@ -187,7 +223,7 @@
       <p id="countdown">—</p>
     </div>
     <div class="header-spacer"></div>
-    <div class="save-note">💾 Saves automatically in this browser</div>
+    <div class="sync-chip"><span class="sync-dot" id="syncDot"></span><span id="syncText">Synced</span></div>
   </header>
 
   <nav class="tabs">
@@ -286,6 +322,12 @@
         <button class="btn ghost sm" id="resetBtn" style="color:var(--danger);">🗑️ Reset everything</button>
       </div>
     </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="section-title">👪 Family account</div>
+      <p class="save-note" id="acctInfo" style="margin-bottom:10px;">—</p>
+      <button class="btn ghost sm" id="logoutBtn">🚪 Log out</button>
+    </div>
   </section>
 
 </div>
@@ -320,123 +362,6 @@ const DEFAULT_CATEGORIES = {
 };
 
 // English pre-loaded from the portal to-do list (in sequence)
-const ENGLISH_TITLES = [
-  "Novel Progress Check 2",
-  "Literary Analysis Draft Assignment",
-  "TurnItIn Novel Guide: First Book",
-  "3.10 Formal and Informal Presentations Assignment",
-  "3.10 Spread the Word Honors Assignment",
-  "Unit 3 Knowledge Check",
-  "3.11 The Art of Persuasion Exam",
-  "4.2 Analyzing Historical Fiction Quiz",
-  "4.3 History as Documents Quiz",
-  "4.4 Writing History Honors Assignment",
-  "4.6 Your Research Plan Assignment",
-  "4.7 Ask an Expert Honors Assignment",
-  "4.8 Varying Sentences Quiz",
-  "4.9 Using Colons with Direct Quotes Assignment",
-  "4.10 Integrate Formats Assignment",
-  "Unit 4 Knowledge Check",
-  "4.11 Reading History Exam",
-  "TurnItIn Reading Log",
-  "5.2 Evaluating a Literary Work Quiz",
-  "TurnItIn 5.2 Literary Criticism Honors Assignment",
-  "5.3 Evaluating Sources Quiz",
-  "5.3 A Closer Look Honors Assignment",
-  "5.5 Taking Notes Knowledge Check",
-  "5.6 Recording Source Information Assignment",
-  "5.7 TurnItIn Thesis Statement Assignment",
-  "5.9 Research Report Outline Assignment",
-  "5.11 Revised Research Report",
-  "5.11 A Model for Integrating Sources Honor Assignment",
-  "5.12 Adding Direct Quotes Assignment"
-];
-
-const GEOMETRY_TITLES = [
-  "5.4/5 Checkpoint",
-  "Module 5 Honors Project",
-  "Module 6 Honors Assignment",
-  "Reasoning and Proofs Quiz #7.3: Lessons 6 and 7",
-  "8.1/2 Checkpoint",
-  "8.3/4 Checkpoint",
-  "Statistics Quiz #8.1: Lessons 1-4",
-  "8.5/6 Checkpoint",
-  "8.7 Checkpoint",
-  "Statistics Quiz #8.2: Lessons 5-7",
-  "Module 8 Honors Assignment",
-  "Module 8 Statistics Practice Test",
-  "Module 8 Statistics Test",
-  "9.1/2 Checkpoint",
-  "9.3 Checkpoint",
-  "Probability Quiz #9.1: Lessons 1-3",
-  "9.4/5 Checkpoint",
-  "Probability Quiz #9.2: Lessons 4 and 5",
-  "Module 9 Honors Assignment",
-  "Module 9 Probability Practice Test",
-  "Module 9 Probability Test"
-];
-const PHYSICS_TITLES = [
-  "05.01 Simple Harmonic Motion",
-  "05.06 Lens and Mirror Lab",
-  "05.07 Snell's Law",
-  "TurnItIn 05.08B Telecommunications and Digital Information",
-  "TurnItIn 05.08C Engineering Design II",
-  "05.10 Waves and Optics Exam",
-  "06.01 Temperature",
-  "06.02 Thermal Energy",
-  "06.03 Honors Thermodynamics",
-  "06.04 Thermal Energy Lab",
-  "06.05 Atomic Theory",
-  "06.06 Duality of Light",
-  "06.06B Atomic Spectra",
-  "06.07 Photoelectric Effect",
-  "06.08 Honors Radiation and Radioactivity",
-  "TurnItIn 06.08B Fission and Fusion",
-  "06.09 Relativity and Cosmology",
-  "TurnItIn 06.09B Engineering Design III",
-  "06.00 Heat and Particles Practice Test",
-  "06.11 Heat and Particles Exam"
-];
-const WORLDHIST_TITLES = [
-  "TurnItIn Post-World War II Comparison Research Paper - Outline Assignment",
-  "TurnItIn Modern Takes on Fourier, Marx, or Engels Assignment",
-  "Chapter 17: Primary Source Exercise",
-  "TurnItIn Post-World War II Comparison Research Paper - Rough Draft Assignment",
-  "Chapter 17 Test",
-  "Chapter 18: Primary Source Exercise",
-  "Chapter 18: Map Exercise",
-  "TurnItIn Comparing Global Women's Rights Assignment",
-  "Chapter 18 Test",
-  "InQuizitive: Chapter 19: Global Crisis, 1910-1939",
-  "Chapter 19: Primary Source Exercise",
-  "TurnItIn Post-World War II Comparison Research Paper - Final Draft Assignment",
-  "Chapter 19 Test",
-  "InQuizitive: Chapter 20: The Three-World Order, 1940-1975",
-  "Chapter 20: Map Exercise",
-  "TurnItIn Cold War Slide Show Assignment",
-  "Chapter 20 Test",
-  "Chapter 21: Primary Source Exercise",
-  "Chapter 21: Map Exercise",
-  "Chapter 21 Test",
-  "InQuizitive: Chapter 22: Twenty-First-Century Global Challenges, 2001-the Present",
-  "Chapter 22: Primary Source Exercise",
-  "TurnItIn Globalization Debate Assignment",
-  "Chapter 22 Test"
-];
-const SOCIAL_TITLES = [
-  "Unit 7 Critical Thinking Dropbox",
-  "Unit 7 Lab Dropbox",
-  "Unit 7 Quiz",
-  "Unit 7 Discussion 1",
-  "Unit 7 Discussion 2",
-  "Unit 8 Critical Thinking Dropbox",
-  "Unit 8 Lab Dropbox",
-  "Unit 8 Quiz"
-];
-const CRIMINOLOGY_TITLES = [
-  "Unit 8 Quiz"
-];
-
 function categorize(title){
   const t = title.toLowerCase();
   const cats = STATE ? STATE.categories : DEFAULT_CATEGORIES;
@@ -450,31 +375,9 @@ function categorize(title){
 }
 
 function seedClasses(){
-  // name, teacher, color, grade, total, done  (done/total from the portal tiles)
-  const defs = [
-    {name:"Honors English 1",    teacher:"McGregor", color:"#ff6b9d", grade:87.64, total:68, done:33, seedTitles:ENGLISH_TITLES},
-    {name:"Honors World History",teacher:"Wells",    color:"#ffa41b", grade:98.03, total:51, done:23, seedTitles:WORLDHIST_TITLES},
-    {name:"Honors Geometry",     teacher:"Johnson",  color:"#4d7cff", grade:89.72, total:44, done:21, seedTitles:GEOMETRY_TITLES},
-    {name:"Honors Physics 1",    teacher:"Accardo",  color:"#9b5de5", grade:87.03, total:41, done:18, seedTitles:PHYSICS_TITLES},
-    {name:"Social Problems 1",   teacher:"Wells",    color:"#00c2a8", grade:94.01, total:44, done:30, seedTitles:SOCIAL_TITLES},
-    {name:"Criminology",         teacher:"Knight",   color:"#22c55e", grade:95.61, total:44, done:40, seedTitles:CRIMINOLOGY_TITLES}
-  ];
-  const classes=[], tasks=[];
-  defs.forEach((d,ci)=>{
-    const id="c"+ci;
-    classes.push({id, name:d.name, teacher:d.teacher, color:d.color, grade:d.grade, total:d.total, done:d.done});
-    if(d.seedTitles){
-      d.seedTitles.forEach((title,si)=>{
-        const cat=categorize(title);
-        tasks.push({id:id+"_t"+si, classId:id, title, type:cat.type, min:cat.min, status:"todo", seq:si, pinnedDate:null});
-      });
-    } else {
-      for(let i=0;i<d.remaining;i++){
-        tasks.push({id:id+"_t"+i, classId:id, title:d.name+" — item "+(i+1)+" (edit me)", type:"Assignment", min:30, status:"todo", seq:i, pinnedDate:null, placeholder:true});
-      }
-    }
-  });
-  return {classes, tasks};
+  // No personal data ships in the public app. Classes/assignments live in the
+  // private family cloud account and are added by importing the seed backup.
+  return { classes:[], tasks:[] };
 }
 
 /* ---------- themes ---------- */
@@ -566,7 +469,8 @@ function load(){
   try{ const raw=localStorage.getItem(LS_KEY); if(raw){STATE=migrate(JSON.parse(raw)); return;} }catch(e){}
   STATE=defaultState();
 }
-function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(STATE)); }catch(e){} }
+function saveLocal(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(STATE)); }catch(e){} }
+function save(){ saveLocal(); if(cloudReady && !applyingRemote) scheduleCloudPush(); }
 
 /* ---------- date helpers ---------- */
 function fmt(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
@@ -658,7 +562,7 @@ function renderCountdown(){
 function applyTheme(){
   const th=theme();
   document.body.setAttribute("data-theme", STATE.settings.theme||"sunshine");
-  document.querySelector(".logo").textContent=th.logo;
+  document.querySelectorAll(".logo").forEach(el=>el.textContent=th.logo);
   document.querySelector(".title-block h1").textContent=STATE.settings.appTitle||"My Study Planner";
 }
 
@@ -1061,7 +965,7 @@ document.getElementById("importFile").onchange=(e)=>{
   r.readAsText(f);
 };
 document.getElementById("resetBtn").onclick=()=>{
-  if(confirm("Reset everything back to the starting setup? Your changes will be lost.")){
+  if(confirm("This erases ALL classes and assignments for the WHOLE family (on every device). This can't be undone. Are you sure?")){
     STATE=defaultState(); initWeek(); initMonth(); render();
   }
 };
@@ -1069,8 +973,95 @@ document.getElementById("resetBtn").onclick=()=>{
 /* ---------- util ---------- */
 function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
+/* ---------- Firebase cloud sync ---------- */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyB0UT-I_HlqSNO3HUvUCfR7v1mHT1PzJvU",
+  authDomain: "study-planner-88f40.firebaseapp.com",
+  projectId: "study-planner-88f40",
+  storageBucket: "study-planner-88f40.firebasestorage.app",
+  messagingSenderId: "41282357718",
+  appId: "1:41282357718:web:073d863ec529723d753c77"
+};
+let fbAuth=null, fbDoc=null, cloudReady=false, applyingRemote=false, pushTimer=null, unsub=null;
+
+function setSync(on,text){
+  const d=document.getElementById("syncDot"), t=document.getElementById("syncText");
+  if(d) d.classList.toggle("off",!on);
+  if(t) t.textContent=text;
+}
+
+function initFirebase(){
+  if(typeof firebase==="undefined" || !firebase.initializeApp){
+    document.getElementById("gateMsg").textContent="Couldn't load the sync service. Check your internet connection and refresh.";
+    return;
+  }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  fbAuth=firebase.auth();
+  fbDoc=firebase.firestore().collection("families").doc("planner");
+  fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
+  fbAuth.onAuthStateChanged(u=>{ u ? onLogin(u) : showLogin(); });
+}
+
+function showLogin(){
+  document.body.classList.remove("authed");
+  cloudReady=false; if(unsub){ unsub(); unsub=null; }
+  const g=document.getElementById("gate"); g.style.display="flex";
+  document.getElementById("gateMsg").textContent="Sign in to your family planner";
+  document.getElementById("loginForm").style.display="block";
+}
+
+function onLogin(user){
+  document.body.classList.add("authed");
+  document.getElementById("gate").style.display="none";
+  setSync(true,"Syncing…");
+  render();
+  const info=document.getElementById("acctInfo");
+  if(info) info.textContent="Signed in as "+(user.email||"family")+". Everyone in the family uses this same login on any device.";
+  if(!unsub){
+    unsub=fbDoc.onSnapshot(snap=>{
+      if(snap.metadata.hasPendingWrites) return;          // ignore our own optimistic write echo
+      if(snap.exists && snap.data() && snap.data().state){
+        const remote=snap.data().state;
+        if(JSON.stringify(remote)!==JSON.stringify(STATE)) applyRemote(remote);
+      } else {
+        pushCloud();                                        // first run: create the shared doc
+      }
+      cloudReady=true; setSync(true,"Synced");
+    }, err=>{ console.warn("sync error",err); setSync(false,"Offline"); });
+  }
+}
+
+function applyRemote(remote){
+  applyingRemote=true;
+  STATE=migrate(remote); saveLocal(); render();
+  applyingRemote=false;
+}
+function scheduleCloudPush(){ setSync(true,"Saving…"); clearTimeout(pushTimer); pushTimer=setTimeout(pushCloud,700); }
+function pushCloud(){
+  if(!fbDoc || !fbAuth || !fbAuth.currentUser) return;
+  fbDoc.set({ state:STATE, updatedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedBy:fbAuth.currentUser.email||"" })
+    .then(()=>setSync(true,"Synced"))
+    .catch(e=>{ console.warn("save failed",e); setSync(false,"Offline"); });
+}
+
+function doLogin(){
+  const email=document.getElementById("loginEmail").value.trim();
+  const pass=document.getElementById("loginPass").value;
+  const err=document.getElementById("loginErr"); err.textContent="";
+  const btn=document.getElementById("loginBtn"); btn.disabled=true; btn.textContent="Logging in…";
+  fbAuth.signInWithEmailAndPassword(email,pass)
+    .catch(e=>{ const c=(e.code||"")+" "+(e.message||""); err.textContent=/password|credential|user-not-found|invalid-email|invalid-login/i.test(c) ? "That email or password didn't match. Try again." : ("Couldn't log in: "+(e.message||e.code)); })
+    .finally(()=>{ btn.disabled=false; btn.textContent="Log in"; });
+}
+
 /* ---------- boot ---------- */
-load(); initWeek(); initMonth(); render();
+load(); initWeek(); initMonth();
+if(document.getElementById("logoutBtn")) document.getElementById("logoutBtn").onclick=()=>{ if(fbAuth) fbAuth.signOut(); };
+document.getElementById("loginBtn").onclick=doLogin;
+document.getElementById("loginPass").addEventListener("keydown",e=>{ if(e.key==="Enter") doLogin(); });
+document.getElementById("loginEmail").addEventListener("keydown",e=>{ if(e.key==="Enter") document.getElementById("loginPass").focus(); });
+applyTheme();
+initFirebase();
 </script>
 </body>
 </html>
