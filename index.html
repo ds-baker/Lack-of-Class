@@ -3,577 +3,1065 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lack of Class — FC 26 Playbook v3</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<title>My Study Planner</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
-  :root {
-    --bg: #0a0e17;
-    --surface: #111827;
-    --surface2: #1a2236;
-    --accent: #f59e0b;
-    --accent2: #ef4444;
-    --green: #10b981;
-    --blue: #3b82f6;
-    --purple: #a78bfa;
-    --text: #e5e7eb;
-    --muted: #6b7280;
-    --jordan: #a78bfa;
+  :root{
+    --bg1:#fef3ff; --bg2:#e0f2ff; --bg3:#fff7e6;
+    --ink:#2b2b3a; --muted:#7b7b91; --line:#ece6f5;
+    --card:#ffffff; --shadow:0 6px 20px rgba(80,60,120,0.10);
+    --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444;
+    --radius:18px;
+    --accent-a:#ff6b9d; --accent-b:#9b5de5; --accent-solid:#22c55e;
+    --pill-bg:#f3eefc; --pill-ink:#6b46c1;
+    --hero:linear-gradient(135deg,#fff,#fdf5ff);
   }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background: var(--bg); color: var(--text); font-family: 'Barlow', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  /* ===== Love Island USA theme — tropical villa ===== */
+  body[data-theme="loveisland"]{
+    --bg1:#ffd0e6; --bg2:#ffe6a8; --bg3:#b5f2ec;
+    --accent-a:#ff2e88; --accent-b:#ff7a4d; --accent-solid:#ff2e88;
+    --pill-bg:#ffe0ee; --pill-ink:#d61f6f;
+    --hero:linear-gradient(135deg,#fff,#fff0f6);
+  }
+  /* ===== Outer Banks theme — OBX ocean & gold ===== */
+  body[data-theme="outerbanks"]{
+    --bg1:#cfeef0; --bg2:#bfe6d2; --bg3:#f5ead4;
+    --ink:#173a3f; --muted:#5f7d80;
+    --accent-a:#0d7c86; --accent-b:#e0a83b; --accent-solid:#0d7c86;
+    --pill-bg:#e2f2ee; --pill-ink:#0d5c63;
+    --hero:linear-gradient(135deg,#fff,#f0f8f7);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    font-family:'Trebuchet MS','Segoe UI',system-ui,-apple-system,sans-serif;
+    color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2) 55%,var(--bg3));
+    background-attachment:fixed;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1150px;margin:0 auto;padding:18px 16px 80px;display:none;}
+  body.authed .wrap{display:block;}
 
-  .header { text-align: center; padding: 36px 20px 20px; position: relative; }
-  .header::after { content:''; position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:120px; height:3px; background:var(--accent); }
-  .club-name { font-family:'Bebas Neue',sans-serif; font-size:3.2rem; letter-spacing:6px; color:#fff; text-transform:uppercase; }
-  .club-sub { font-family:'Barlow Condensed',sans-serif; font-size:1rem; color:var(--accent); letter-spacing:4px; text-transform:uppercase; margin-top:4px; }
-  .version-badge { display:inline-block; font-family:'Barlow Condensed',sans-serif; font-size:0.7rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; background:var(--jordan); color:#000; padding:3px 12px; border-radius:3px; margin-top:10px; }
+  /* Login gate */
+  .gate{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;
+        background:linear-gradient(135deg,var(--bg1),var(--bg2) 55%,var(--bg3));}
+  body.authed .gate{display:none;}
+  .gate-card{background:#fff;border-radius:22px;box-shadow:0 20px 60px rgba(80,60,120,.25);padding:30px 26px;max-width:360px;width:100%;text-align:center;}
+  .gate-card .logo{margin:0 auto 14px;}
+  .gate-card h2{font-size:1.5rem;margin-bottom:4px;}
+  .gate-card p{color:var(--muted);font-size:.9rem;margin-bottom:18px;}
+  .gate-card input{width:100%;margin-bottom:10px;text-align:center;font-size:1rem;}
+  .gate-card .btn{width:100%;margin-top:4px;}
+  .login-err{color:var(--danger);font-size:.82rem;margin-top:10px;min-height:1em;}
+  .login-hint{color:var(--muted);font-size:.72rem;margin-top:14px;line-height:1.5;}
+  .sync-chip{font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:5px;}
+  .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);}
+  .sync-dot.off{background:var(--muted);}
 
-  .tabs { display:flex; justify-content:center; gap:4px; margin:28px auto 0; max-width:800px; padding:0 16px; flex-wrap:wrap; }
-  .tab { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:0.85rem; letter-spacing:2px; text-transform:uppercase; padding:10px 18px; border:none; background:var(--surface); color:var(--muted); cursor:pointer; transition:all 0.2s; border-radius:4px; }
-  .tab:hover { color:var(--text); background:var(--surface2); }
-  .tab.active { background:var(--accent); color:#000; }
+  /* Header */
+  header.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px;}
+  .logo{
+    width:48px;height:48px;border-radius:14px;flex:none;
+    background:linear-gradient(135deg,var(--accent-a),var(--accent-b));
+    display:flex;align-items:center;justify-content:center;font-size:1.6rem;
+    box-shadow:var(--shadow);
+  }
+  .title-block h1{font-size:1.55rem;letter-spacing:.3px;}
+  .title-block p{color:var(--muted);font-size:.9rem;margin-top:2px;}
+  .header-spacer{flex:1;}
+  .save-note{font-size:.72rem;color:var(--muted);}
 
-  .panel { display:none; }
-  .panel.active { display:block; }
+  /* Nav */
+  nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0 20px;}
+  .tab{
+    border:none;cursor:pointer;font:inherit;font-weight:700;font-size:.9rem;
+    padding:10px 16px;border-radius:999px;background:#fff;color:var(--muted);
+    box-shadow:var(--shadow);transition:transform .12s,color .12s;
+  }
+  .tab:hover{transform:translateY(-1px);color:var(--ink);}
+  .tab.active{background:linear-gradient(135deg,var(--accent-a),var(--accent-b));color:#fff;}
 
-  /* Pitch & formation */
-  .formation-section { max-width:900px; margin:30px auto; padding:0 16px; }
-  .formation-label { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; letter-spacing:3px; color:var(--accent); text-align:center; margin-bottom:4px; }
-  .formation-desc { text-align:center; color:var(--muted); font-size:0.88rem; margin-bottom:20px; max-width:640px; margin-left:auto; margin-right:auto; line-height:1.6; }
-  .pcb { display:inline-block; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:0.7rem; letter-spacing:1px; text-transform:uppercase; padding:3px 10px; border-radius:3px; margin-bottom:12px; }
-  .pcb-3 { background:rgba(239,68,68,0.15); color:var(--accent2); }
-  .pcb-4 { background:rgba(16,185,129,0.15); color:var(--green); }
-  .pcb-5 { background:rgba(59,130,246,0.15); color:var(--blue); }
-  .pcb-6 { background:rgba(245,158,11,0.15); color:var(--accent); }
-  .pcb-7 { background:rgba(167,139,250,0.15); color:var(--jordan); }
+  .panel{display:none;animation:fade .25s ease;}
+  .panel.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 
-  .pitch { position:relative; width:100%; max-width:500px; aspect-ratio:0.72; margin:0 auto; background:linear-gradient(180deg,#14572a 0%,#1a6b35 30%,#14572a 50%,#1a6b35 70%,#14572a 100%); border:2px solid rgba(255,255,255,0.15); border-radius:8px; overflow:hidden; }
-  .pitch::before { content:''; position:absolute; top:49.5%; left:10%; right:10%; height:1px; background:rgba(255,255,255,0.25); }
-  .pitch-circle { position:absolute; top:50%; left:50%; width:80px; height:80px; border:1px solid rgba(255,255,255,0.25); border-radius:50%; transform:translate(-50%,-50%); }
-  .pitch-box-top { position:absolute; top:0; left:25%; right:25%; height:14%; border:1px solid rgba(255,255,255,0.25); border-top:none; }
-  .pitch-box-bot { position:absolute; bottom:0; left:25%; right:25%; height:14%; border:1px solid rgba(255,255,255,0.25); border-bottom:none; }
+  /* Cards */
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;}
+  .grid{display:grid;gap:14px;}
+  .cols-auto{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));}
 
-  .player-dot { position:absolute; transform:translate(-50%,-50%); text-align:center; z-index:2; }
-  .player-dot .dot { width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:0.78rem; letter-spacing:1px; margin:0 auto; box-shadow:0 2px 10px rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.3); }
-  .dot.human { background:var(--accent); color:#000; border-color:var(--accent); }
-  .dot.jordan { background:var(--jordan); color:#000; border-color:var(--jordan); box-shadow:0 0 16px rgba(167,139,250,0.4); }
-  .dot.ai { background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.5); border-color:rgba(255,255,255,0.15); }
-  .dot.opt { background:rgba(245,158,11,0.35); color:rgba(255,255,255,0.7); border-color:rgba(245,158,11,0.4); width:36px; height:36px; font-size:0.65rem; }
-  .player-dot .name { font-family:'Barlow Condensed',sans-serif; font-size:0.7rem; font-weight:700; color:#fff; margin-top:3px; text-transform:uppercase; letter-spacing:1px; text-shadow:0 1px 4px rgba(0,0,0,0.8); white-space:nowrap; }
-  .player-dot .name.jn { color:var(--jordan); }
-  .player-dot .pos { font-size:0.55rem; color:rgba(255,255,255,0.5); letter-spacing:1px; }
-  .ai-label { color:rgba(255,255,255,0.35) !important; }
-  .pitch-note { position:absolute; bottom:4%; left:50%; transform:translateX(-50%); text-align:center; z-index:3; font-size:0.58rem; color:rgba(255,255,255,0.3); font-family:'Barlow Condensed',sans-serif; letter-spacing:1px; }
+  /* Class tiles */
+  .class-tile{position:relative;overflow:hidden;border-radius:var(--radius);background:#fff;box-shadow:var(--shadow);padding:16px 16px 14px;border-top:6px solid var(--c,#ccc);}
+  .class-tile h3{font-size:1.05rem;line-height:1.2;padding-right:62px;}
+  .class-tile .teacher{color:var(--muted);font-size:.78rem;margin-top:2px;}
+  .badge-grade{position:absolute;top:12px;right:12px;font-weight:800;font-size:.95rem;color:var(--c,#555);}
+  .progress-wrap{margin-top:12px;}
+  .bar{height:10px;border-radius:999px;background:#eee;overflow:hidden;}
+  .bar > i{display:block;height:100%;background:var(--c,#999);border-radius:999px;}
+  .progress-meta{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);margin-top:6px;}
+  .tile-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;}
+  .pill{font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--pill-bg);color:var(--pill-ink);}
+  .btn-mini{font:inherit;font-size:.74rem;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:999px;padding:5px 10px;cursor:pointer;}
+  .btn-mini:hover{color:var(--ink);border-color:#d8cff0;}
 
-  /* Formation tabs */
-  .fm-tabs { display:flex; justify-content:center; gap:6px; margin-bottom:20px; flex-wrap:wrap; }
-  .fm-tab { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:0.78rem; letter-spacing:1px; padding:6px 14px; border:1px solid rgba(255,255,255,0.1); background:transparent; color:var(--muted); cursor:pointer; border-radius:4px; transition:all 0.2s; }
-  .fm-tab:hover { border-color:var(--accent); color:var(--text); }
-  .fm-tab.active { background:var(--accent); color:#000; border-color:var(--accent); }
-  .fm-view { display:none; }
-  .fm-view.active { display:block; }
+  /* Buttons */
+  .btn{font:inherit;font-weight:700;border:none;cursor:pointer;border-radius:12px;padding:10px 16px;background:linear-gradient(135deg,var(--accent-a),var(--accent-b));color:#fff;box-shadow:var(--shadow);transition:transform .1s;}
+  .btn:hover{transform:translateY(-1px);}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none;}
+  .btn.ok{background:linear-gradient(135deg,#22c55e,#0ea5a3);}
+  .btn.sm{padding:7px 12px;font-size:.82rem;border-radius:10px;}
 
-  /* Roster */
-  .roster-section { max-width:900px; margin:30px auto; padding:0 16px; }
-  .section-title { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; letter-spacing:3px; color:#fff; margin-bottom:16px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.08); }
-  .roster-card { background:var(--surface); border-radius:8px; overflow:hidden; margin-bottom:10px; border-left:3px solid var(--accent); }
-  .roster-card.star { border-left-color:var(--jordan); }
-  .roster-card.t2 { border-left-color:var(--blue); }
-  .roster-card.t3 { border-left-color:var(--muted); }
-  .rc-header { display:flex; align-items:center; padding:14px 18px; gap:14px; cursor:pointer; transition:background 0.2s; }
-  .rc-header:hover { background:var(--surface2); }
-  .rc-pos { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; width:42px; text-align:center; letter-spacing:1px; color:var(--accent); }
-  .roster-card.star .rc-pos { color:var(--jordan); }
-  .roster-card.t2 .rc-pos { color:var(--blue); }
-  .roster-card.t3 .rc-pos { color:var(--muted); }
-  .rc-name { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:1.1rem; letter-spacing:1px; text-transform:uppercase; flex:1; }
-  .rc-star { font-size:0.65rem; color:var(--jordan); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-left:6px; }
-  .rc-freq { font-size:0.7rem; color:var(--muted); font-family:'Barlow Condensed',sans-serif; letter-spacing:1px; margin-right:8px; }
-  .rc-arch { font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
-  .rc-body { display:none; padding:0 18px 14px 74px; font-size:0.85rem; color:var(--muted); line-height:1.6; }
-  .rc-body.open { display:block; }
-  .tag { display:inline-block; font-size:0.65rem; font-weight:600; text-transform:uppercase; letter-spacing:1px; padding:2px 8px; border-radius:3px; margin-right:4px; margin-bottom:4px; }
-  .tag-green { background:rgba(16,185,129,0.15); color:var(--green); }
-  .tag-blue { background:rgba(59,130,246,0.15); color:var(--blue); }
-  .tag-red { background:rgba(239,68,68,0.15); color:var(--accent2); }
-  .tag-amber { background:rgba(245,158,11,0.15); color:var(--accent); }
-  .tag-purple { background:rgba(167,139,250,0.15); color:var(--jordan); }
+  /* Today */
+  .today-hero{display:flex;gap:20px;flex-wrap:wrap;align-items:center;background:var(--hero);}
+  .ring{--p:0;width:120px;height:120px;border-radius:50%;flex:none;
+    background:conic-gradient(var(--accent-solid) calc(var(--p)*1%), #eee 0);
+    display:flex;align-items:center;justify-content:center;position:relative;}
+  .ring::after{content:'';position:absolute;inset:12px;background:#fff;border-radius:50%;}
+  .ring b{position:relative;z-index:1;font-size:1.5rem;}
+  .ring span{position:relative;z-index:1;font-size:.7rem;color:var(--muted);display:block;text-align:center;}
+  .hero-msg h2{font-size:1.3rem;}
+  .hero-msg p{color:var(--muted);margin-top:4px;}
+  .hero-stats{display:flex;gap:18px;margin-top:10px;flex-wrap:wrap;}
+  .hero-stats div b{font-size:1.15rem;}
+  .hero-stats div span{display:block;font-size:.72rem;color:var(--muted);}
 
-  /* Strategy */
-  .strat-section { max-width:900px; margin:30px auto; padding:0 16px 60px; }
-  .strat-block { background:var(--surface); border-radius:8px; padding:20px 24px; margin-bottom:14px; }
-  .strat-block h3 { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:1rem; text-transform:uppercase; letter-spacing:2px; color:var(--accent); margin-bottom:10px; }
-  .strat-block p { font-size:0.9rem; line-height:1.7; color:var(--text); }
-  .strat-block p + p { margin-top:10px; }
-  .highlight { color:var(--accent); font-weight:600; }
-  .hl-j { color:var(--jordan); font-weight:600; }
+  /* Task rows */
+  .task{display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;box-shadow:var(--shadow);padding:11px 14px;margin-bottom:9px;border-left:6px solid var(--c,#ccc);cursor:grab;}
+  .task.done{opacity:.5;}
+  .task.done .t-title{text-decoration:line-through;}
+  .check{width:24px;height:24px;border-radius:8px;border:2px solid var(--c,#ccc);flex:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem;background:#fff;}
+  .check.on{background:var(--c,#22c55e);}
+  .t-body{flex:1;min-width:0;}
+  .t-title{font-weight:700;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .t-sub{font-size:.72rem;color:var(--muted);margin-top:1px;}
+  .t-type{font-size:.68rem;font-weight:800;padding:3px 8px;border-radius:999px;background:var(--pill-bg);color:var(--pill-ink);white-space:nowrap;}
+  .t-min{font-size:.72rem;color:var(--muted);white-space:nowrap;min-width:44px;text-align:right;}
+  .t-edit{border:none;background:transparent;cursor:pointer;color:var(--muted);font-size:1rem;padding:2px 6px;border-radius:8px;}
+  .t-edit:hover{color:var(--ink);background:var(--pill-bg);}
 
-  .scenario-grid { display:grid; grid-template-columns:1fr; gap:10px; margin-top:14px; }
-  .scenario { background:var(--surface2); border-radius:6px; padding:14px 18px; border-left:3px solid var(--muted); }
-  .scenario.rec { border-left-color:var(--green); }
-  .scenario-label { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:0.8rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--green); margin-bottom:6px; }
-  .scenario p { font-size:0.85rem; line-height:1.6; color:var(--text); }
+  /* Week board */
+  .board{display:grid;grid-template-columns:repeat(7,minmax(150px,1fr));gap:10px;overflow-x:auto;padding-bottom:8px;}
+  .day-col{background:rgba(255,255,255,.7);border-radius:14px;padding:8px;min-height:120px;display:flex;flex-direction:column;}
+  .day-col.today{outline:2px solid var(--accent-b);}
+  .day-col.over{background:#f6ecff;}
+  .day-col.off{opacity:.55;}
+  .day-head{font-size:.78rem;font-weight:800;text-align:center;margin-bottom:6px;}
+  .day-head small{display:block;font-weight:600;color:var(--muted);}
+  .day-load{font-size:.68rem;text-align:center;color:var(--muted);margin-bottom:6px;}
+  .mini-task{font-size:.74rem;background:#fff;border-radius:9px;padding:6px 8px;margin-bottom:6px;box-shadow:0 2px 6px rgba(80,60,120,.08);border-left:4px solid var(--c,#ccc);cursor:grab;}
+  .mini-task .mt-title{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mini-task .mt-sub{color:var(--muted);font-size:.66rem;}
 
-  /* Availability matrix */
-  .avail-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; margin-top:14px; }
-  .avail-card { background:var(--surface2); border-radius:6px; padding:12px 14px; text-align:center; }
-  .avail-name { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:0.9rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
-  .avail-freq { font-size:0.75rem; color:var(--muted); }
-  .avail-dots { margin-top:6px; display:flex; justify-content:center; gap:4px; }
-  .avail-dot { width:10px; height:10px; border-radius:50%; }
-  .avail-dot.on { background:var(--green); }
-  .avail-dot.off { background:rgba(255,255,255,0.08); }
-  .avail-dot.maybe { background:rgba(245,158,11,0.4); }
+  /* Month */
+  .month{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .mhead{font-size:.72rem;font-weight:800;text-align:center;color:var(--muted);padding:4px;}
+  .mcell{min-height:70px;background:rgba(255,255,255,.7);border-radius:10px;padding:6px;font-size:.72rem;cursor:pointer;transition:background .1s;}
+  .mcell:hover{background:#fff;}
+  .mcell.blank{background:transparent;cursor:default;}
+  .mcell.today{outline:2px solid var(--accent-b);}
+  .mcell .dn{font-weight:800;}
+  .mcell .load{margin-top:4px;font-size:.66rem;color:#fff;background:var(--ok);border-radius:6px;padding:1px 4px;display:inline-block;}
+  .mcell .load.warn{background:var(--warn);}
+  .mcell .load.heavy{background:var(--danger);}
 
-  @media (max-width:600px) {
-    .club-name { font-size:2.2rem; letter-spacing:3px; }
-    .tabs { gap:3px; }
-    .tab { font-size:0.72rem; padding:8px 12px; }
-    .pitch { max-width:340px; }
-    .player-dot .dot { width:34px; height:34px; font-size:0.68rem; }
-    .player-dot .name { font-size:0.6rem; }
-    .rc-body { padding-left:18px; }
-    .avail-grid { grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); }
+  /* Controls / settings */
+  .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;}
+  label.fld{display:flex;flex-direction:column;gap:5px;font-size:.78rem;font-weight:700;color:var(--muted);}
+  input,select,textarea{font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);}
+  textarea{width:100%;min-height:150px;resize:vertical;}
+  .day-toggle{display:flex;gap:5px;flex-wrap:wrap;}
+  .day-toggle button{font:inherit;font-size:.75rem;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:9px;padding:7px 10px;cursor:pointer;width:44px;}
+  .day-toggle button.on{background:var(--accent-b);color:#fff;border-color:var(--accent-b);}
+  .section-title{font-size:1.05rem;font-weight:800;margin:6px 0 12px;display:flex;align-items:center;gap:8px;}
+
+  /* Modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(40,25,60,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:50;}
+  .modal-bg.show{display:flex;}
+  .modal{background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(40,25,60,.4);max-width:640px;width:100%;max-height:88vh;overflow:auto;padding:22px;}
+  .modal h3{margin-bottom:12px;}
+  .close-x{float:right;border:none;background:#f3eefc;color:#6b46c1;font-weight:800;border-radius:9px;width:32px;height:32px;cursor:pointer;font-size:1rem;}
+  .preview-list{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:10px;}
+  .preview-item{display:flex;justify-content:space-between;gap:8px;font-size:.8rem;padding:4px 6px;border-bottom:1px dashed var(--line);}
+  .preview-item:last-child{border:none;}
+
+  .empty{text-align:center;color:var(--muted);padding:36px 10px;}
+  .empty .em{font-size:2.4rem;}
+  .hint{font-size:.78rem;color:var(--muted);background:#faf6ff;border:1px dashed #e5d9f7;border-radius:12px;padding:10px 12px;margin-bottom:14px;}
+  @media(max-width:640px){
+    .board{grid-auto-flow:column;}
+    .ring{width:96px;height:96px;}
   }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="club-name">Lack of Class</div>
-  <div class="club-sub">EA FC 26 Pro Clubs Playbook</div>
-  <div class="version-badge">v3 — 3-to-5 Optimized &bull; Jordan-Centric</div>
-</div>
-
-<div class="tabs">
-  <button class="tab active" onclick="switchPanel('formations')">Formations</button>
-  <button class="tab" onclick="switchPanel('roster')">Roster</button>
-  <button class="tab" onclick="switchPanel('strategy')">Strategy</button>
-  <button class="tab" onclick="switchPanel('availability')">Availability</button>
-</div>
-
-<!-- ============ FORMATIONS ============ -->
-<div id="formations" class="panel active">
-  <div class="formation-section">
-    <div class="fm-tabs">
-      <button class="fm-tab active" onclick="switchFm('fm3')">3 Players</button>
-      <button class="fm-tab" onclick="switchFm('fm4')">4 Players</button>
-      <button class="fm-tab" onclick="switchFm('fm5')">5 Players</button>
-      <button class="fm-tab" onclick="switchFm('fm6')">6-7 Players</button>
-      <button class="fm-tab" onclick="switchFm('fmlock')">Lockdown</button>
-    </div>
-
-    <!-- 3 PLAYERS -->
-    <div id="fm3" class="fm-view active">
-      <div style="text-align:center"><span class="pcb pcb-3">3 Players — Skeleton Crew</span></div>
-      <div class="formation-label">4-2-3-1 Wide (AI Heavy)</div>
-      <div class="formation-desc">Just three humans tonight. Go spine: Jordan at CM (box-to-box), Dylan at CAM, and your third player (usually Mike or Charlie) up top. AI fills everything else. The 4-2-3-1 keeps the AI organized — they handle defense, wings, and the second CDM. Your three humans control the central channel where games are won.</div>
-      <div class="pitch">
-        <div class="pitch-circle"></div><div class="pitch-box-top"></div><div class="pitch-box-bot"></div>
-        <div class="player-dot" style="top:12%;left:50%"><div class="dot human">ST</div><div class="name">Mike / Charlie</div><div class="pos">Whoever's on</div></div>
-        <div class="player-dot" style="top:26%;left:16%"><div class="dot ai">LW</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:30%;left:50%"><div class="dot human">CAM</div><div class="name">Dylan</div><div class="pos">Creator</div></div>
-        <div class="player-dot" style="top:26%;left:84%"><div class="dot ai">RW</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:48%;left:36%"><div class="dot ai">CDM</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:48%;left:64%"><div class="dot jordan">CM</div><div class="name jn">Jordan ★</div><div class="pos">Maestro — B2B</div></div>
-        <div class="player-dot" style="top:74%;left:16%"><div class="dot ai">LB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:74%;left:38%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:74%;left:62%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:74%;left:84%"><div class="dot ai">RB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:91%;left:50%"><div class="dot ai">GK</div><div class="name ai-label">AI</div></div>
-        <div class="pitch-note">AI FILLS 8 POSITIONS — INVEST IN FACILITIES</div>
-      </div>
-    </div>
-
-    <!-- 4 PLAYERS — THE CORE -->
-    <div id="fm4" class="fm-view">
-      <div style="text-align:center"><span class="pcb pcb-4">4 Players — The Core Four ★</span></div>
-      <div class="formation-label">4-1-2-1-2 Narrow</div>
-      <div class="formation-desc">This is your most common lineup: Charlie, Jordan, Dylan, Mike. The narrow diamond maximizes these four players. Mike and Charlie as a striker pair, Dylan at CAM threading balls, Jordan at CM controlling tempo. AI plays CDM, back four, and GK. Everyone's within one pass of Jordan.</div>
-      <div class="pitch">
-        <div class="pitch-circle"></div><div class="pitch-box-top"></div><div class="pitch-box-bot"></div>
-        <div class="player-dot" style="top:12%;left:38%"><div class="dot human">LST</div><div class="name">Mike</div><div class="pos">Magician</div></div>
-        <div class="player-dot" style="top:12%;left:62%"><div class="dot human">RST</div><div class="name">Charlie</div><div class="pos">Target / Finisher</div></div>
-        <div class="player-dot" style="top:28%;left:50%"><div class="dot human">CAM</div><div class="name">Dylan</div><div class="pos">Creator</div></div>
-        <div class="player-dot" style="top:44%;left:50%"><div class="dot jordan">CM</div><div class="name jn">Jordan ★</div><div class="pos">Maestro — B2B</div></div>
-        <div class="player-dot" style="top:58%;left:50%"><div class="dot ai">CDM</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:74%;left:16%"><div class="dot ai">LB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:74%;left:38%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:74%;left:62%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:74%;left:84%"><div class="dot ai">RB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:91%;left:50%"><div class="dot ai">GK</div><div class="name ai-label">AI</div></div>
-        <div class="pitch-note">CORE FOUR — YOUR MOST COMMON LINEUP</div>
-      </div>
-    </div>
-
-    <!-- 5 PLAYERS -->
-    <div id="fm5" class="fm-view">
-      <div style="text-align:center"><span class="pcb pcb-5">5 Players — Core + 1</span></div>
-      <div class="formation-label">4-1-2-1-2 Narrow</div>
-      <div class="formation-desc">Same diamond as the Core Four, but now your 5th (usually Jake, Max, or Brian) fills the CDM spot instead of AI. If Brian is the 5th, consider shifting to a 4-2-3-1 with Brian on a wing — but only if you're comfortable losing the two-striker setup. Jake or Max at CDM is the cleanest fit.</div>
-      <div class="pitch">
-        <div class="pitch-circle"></div><div class="pitch-box-top"></div><div class="pitch-box-bot"></div>
-        <div class="player-dot" style="top:12%;left:38%"><div class="dot human">LST</div><div class="name">Mike</div><div class="pos">Magician</div></div>
-        <div class="player-dot" style="top:12%;left:62%"><div class="dot human">RST</div><div class="name">Charlie</div><div class="pos">Target / Finisher</div></div>
-        <div class="player-dot" style="top:28%;left:50%"><div class="dot human">CAM</div><div class="name">Dylan</div><div class="pos">Creator</div></div>
-        <div class="player-dot" style="top:44%;left:50%"><div class="dot jordan">CM</div><div class="name jn">Jordan ★</div><div class="pos">Maestro — B2B</div></div>
-        <div class="player-dot" style="top:58%;left:50%"><div class="dot human">CDM</div><div class="name">Jake / Max</div><div class="pos">Recycler</div></div>
-        <div class="player-dot" style="top:74%;left:16%"><div class="dot ai">LB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:74%;left:38%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:74%;left:62%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:74%;left:84%"><div class="dot ai">RB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:91%;left:50%"><div class="dot ai">GK</div><div class="name ai-label">AI</div></div>
-        <div class="pitch-note">JAKE / MAX / BRIAN FILLS THE 5TH SPOT</div>
-      </div>
-    </div>
-
-    <!-- 6-7 PLAYERS -->
-    <div id="fm6" class="fm-view">
-      <div style="text-align:center"><span class="pcb pcb-6">6-7 Players — Rare Full Nights</span></div>
-      <div class="formation-label">4-2-3-1 Wide</div>
-      <div class="formation-desc">When you have the luxury of 6-7, open up to the 4-2-3-1. Jake + Jordan as the double pivot (Jake holds, Jordan roams). Dylan at CAM. Mike LW, Brian or Charlie on the right, Charlie or Brian up top. Max/Adam slot into whichever spot remains.</div>
-      <div class="pitch">
-        <div class="pitch-circle"></div><div class="pitch-box-top"></div><div class="pitch-box-bot"></div>
-        <div class="player-dot" style="top:12%;left:50%"><div class="dot human">ST</div><div class="name">Charlie</div><div class="pos">Target / Finisher</div></div>
-        <div class="player-dot" style="top:26%;left:16%"><div class="dot human">LW</div><div class="name">Mike</div><div class="pos">Magician</div></div>
-        <div class="player-dot" style="top:30%;left:50%"><div class="dot human">CAM</div><div class="name">Dylan</div><div class="pos">Creator</div></div>
-        <div class="player-dot" style="top:26%;left:84%"><div class="dot human">RW</div><div class="name">Brian</div><div class="pos">Spark</div></div>
-        <div class="player-dot" style="top:50%;left:36%"><div class="dot human">LDM</div><div class="name">Jake</div><div class="pos">Recycler — Holding</div></div>
-        <div class="player-dot" style="top:48%;left:64%"><div class="dot jordan">RCM</div><div class="name jn">Jordan ★</div><div class="pos">Maestro — B2B</div></div>
-        <div class="player-dot" style="top:38%;left:76%"><div class="dot opt">+7</div><div class="name" style="color:var(--muted)">Max / Adam</div><div class="pos">RW or CDM</div></div>
-        <div class="player-dot" style="top:74%;left:16%"><div class="dot ai">LB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:74%;left:38%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:74%;left:62%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:74%;left:84%"><div class="dot ai">RB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:91%;left:50%"><div class="dot ai">GK</div><div class="name ai-label">AI</div></div>
-      </div>
-    </div>
-
-    <!-- LOCKDOWN -->
-    <div id="fmlock" class="fm-view">
-      <div style="text-align:center"><span class="pcb pcb-3">Any Count — Protect a Lead</span></div>
-      <div class="formation-label">Drop Dylan Deep</div>
-      <div class="formation-desc">When protecting a lead with the Core Four: Dylan drops from CAM to CM alongside Jordan, creating a midfield two in front of the AI CDM. Mike and Charlie stay forward as the counter-attack outlets. Jordan switches to Engine archetype behavior — win the ball, keep it simple, let the clock run.</div>
-      <div class="pitch">
-        <div class="pitch-circle"></div><div class="pitch-box-top"></div><div class="pitch-box-bot"></div>
-        <div class="player-dot" style="top:14%;left:38%"><div class="dot human">LST</div><div class="name">Mike</div><div class="pos">Counter Threat</div></div>
-        <div class="player-dot" style="top:14%;left:62%"><div class="dot human">RST</div><div class="name">Charlie</div><div class="pos">Hold-up / Outlet</div></div>
-        <div class="player-dot" style="top:38%;left:40%"><div class="dot human">LCM</div><div class="name">Dylan</div><div class="pos">Creator — Deep</div></div>
-        <div class="player-dot" style="top:38%;left:60%"><div class="dot jordan">RCM</div><div class="name jn">Jordan ★</div><div class="pos">Engine — Lockdown</div></div>
-        <div class="player-dot" style="top:54%;left:50%"><div class="dot ai">CDM</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:74%;left:16%"><div class="dot ai">LB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:74%;left:38%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:74%;left:62%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:74%;left:84%"><div class="dot ai">RB</div><div class="name ai-label">AI</div></div>
-        <div class="player-dot" style="top:91%;left:50%"><div class="dot ai">GK</div><div class="name ai-label">AI</div></div>
-        <div class="pitch-note">DYLAN DROPS — MIDFIELD TWO PROTECTS THE LEAD</div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- ============ ROSTER ============ -->
-<div id="roster" class="panel">
-  <div class="roster-section">
-    <div class="section-title">Tier 1 — Core Four (3x / week)</div>
-
-    <div class="roster-card star" onclick="toggleCard(this)">
-      <div class="rc-header">
-        <div class="rc-pos">CM</div>
-        <div class="rc-name">Jordan <span class="rc-star">★ Franchise</span></div>
-        <div class="rc-freq">3x/wk</div>
-        <div class="rc-arch">Maestro / Engine</div>
-      </div>
-      <div class="rc-body">
-        <span class="tag tag-purple">Always Starts</span>
-        <span class="tag tag-purple">System Built Around Him</span>
-        <p style="margin-top:8px"><strong>Maestro</strong> primary — Pinged+, Long Ball+, Tiki Taka+ let him dictate tempo, spray switches, and retain possession. <strong>Engine</strong> secondary for defensive-heavy games or lockdown situations. Always box-to-box or deep-lying playmaker role, never holding. Jordan covers the ground; Jake (or AI) sits.</p>
-      </div>
-    </div>
-
-    <div class="roster-card" onclick="toggleCard(this)">
-      <div class="rc-header">
-        <div class="rc-pos">CAM</div>
-        <div class="rc-name">Dylan</div>
-        <div class="rc-freq">3x/wk</div>
-        <div class="rc-arch">Creator</div>
-      </div>
-      <div class="rc-body">
-        <span class="tag tag-amber">Primary: CAM</span>
-        <span class="tag tag-blue">Flex: CM / CDM</span>
-        <p style="margin-top:8px">Creator with Incisive Pass and Inventive. The Dylan-Jordan vertical swap is the team's key tactical lever — no formation change needed, just a verbal call. When Dylan drops deep in lockdown mode, his passing range keeps the build-up dangerous even from the pivot. Secondary unlock: <strong>Maestro</strong> for the deeper role.</p>
-      </div>
-    </div>
-
-    <div class="roster-card" onclick="toggleCard(this)">
-      <div class="rc-header">
-        <div class="rc-pos">LW/ST</div>
-        <div class="rc-name">Mike</div>
-        <div class="rc-freq">3x/wk</div>
-        <div class="rc-arch">Magician</div>
-      </div>
-      <div class="rc-body">
-        <span class="tag tag-red">Shoot First</span>
-        <span class="tag tag-amber">LW in wide sets / LST in narrow</span>
-        <p style="margin-top:8px">Magician with Finesse Shot+ is devastating from the left. In the Core Four's 4-1-2-1-2, Mike plays LST; in wider formations, he's LW as an Inside Forward. Jordan's Pinged+ switches from deep find Mike in space on the left. The Mike-Jordan connection is the team's most dangerous attacking combo.</p>
-      </div>
-    </div>
-
-    <div class="roster-card" onclick="toggleCard(this)">
-      <div class="rc-header">
-        <div class="rc-pos">ST/RW</div>
-        <div class="rc-name">Charlie</div>
-        <div class="rc-freq">3x/wk</div>
-        <div class="rc-arch">Target / Finisher</div>
-      </div>
-      <div class="rc-body">
-        <span class="tag tag-red">Versatile Striker</span>
-        <span class="tag tag-blue">Flex: RW</span>
-        <p style="margin-top:8px">Target (Precision Header+, Power Shot+) for hold-up play and aerial threat; Finisher (Low Driven Shot+) for clinical finishing. In the Core Four narrow diamond, Charlie plays RST. In wider sets, he's the lone striker or rotates to RW where his finishing makes him a cut-inside threat. Charlie is the primary outlet for Jordan's forward passes.</p>
-      </div>
-    </div>
-
-    <div class="section-title" style="margin-top:24px">Tier 2 — Regular Rotation (2x / week)</div>
-
-    <div class="roster-card t2" onclick="toggleCard(this)">
-      <div class="rc-header">
-        <div class="rc-pos">CDM</div>
-        <div class="rc-name">Jake</div>
-        <div class="rc-freq">2x/wk</div>
-        <div class="rc-arch">Recycler</div>
-      </div>
-      <div class="rc-body">
-        <span class="tag tag-green">Anchor</span>
-        <span class="tag tag-amber">CDM Only</span>
-        <p style="margin-top:8px">Recycler with Press Proven+ and Intercept+. Jake is the ideal 5th man — he replaces AI at CDM and immediately upgrades the defensive foundation. The Jake-Jordan pivot (Jake sits, Jordan roams) is the best midfield pairing the team has. On nights without Jake, the AI CDM is competent enough at holding, and Jordan compensates.</p>
-      </div>
-    </div>
-
-    <div class="roster-card t2" onclick="toggleCard(this)">
-      <div class="rc-header">
-        <div class="rc-pos">RW</div>
-        <div class="rc-name">Brian</div>
-        <div class="rc-freq">2x/wk</div>
-        <div class="rc-arch">Spark</div>
-      </div>
-      <div class="rc-body">
-        <span class="tag tag-green">Pace Merchant</span>
-        <span class="tag tag-blue">Flex: LW / ST / LCM</span>
-        <p style="margin-top:8px">Spark with Rapid and Trickster. Brian is the player who unlocks the 4-2-3-1 — you need a human winger to make that formation work. When Brian's on with the Core Four, you can shift from the narrow diamond to a wide shape. Secondary unlock: <strong>Engine</strong> for central play.</p>
-      </div>
-    </div>
-
-    <div class="roster-card t2" onclick="toggleCard(this)">
-      <div class="rc-header">
-        <div class="rc-pos">CDM</div>
-        <div class="rc-name">Max</div>
-        <div class="rc-freq">2x/wk</div>
-        <div class="rc-arch">Recycler / Engine</div>
-      </div>
-      <div class="rc-body">
-        <span class="tag tag-green">Two-Way Mid</span>
-        <span class="tag tag-blue">Flex: RW / RCM</span>
-        <p style="margin-top:8px">Interchangeable with Jake at CDM. <strong>Engine</strong> is the recommended primary — strongest defensive archetype overall, and gives more flexibility when rotating to RW on full nights. Max is the "Jake replacement" on nights when Jake's off and you have 5.</p>
-      </div>
-    </div>
-
-    <div class="section-title" style="margin-top:24px">Tier 3 — Spot Duty (~1x / week)</div>
-
-    <div class="roster-card t3" onclick="toggleCard(this)">
-      <div class="rc-header">
-        <div class="rc-pos">UTIL</div>
-        <div class="rc-name">Adam</div>
-        <div class="rc-freq">~1x/wk</div>
-        <div class="rc-arch">Engine (rec)</div>
-      </div>
-      <div class="rc-body">
-        <span class="tag tag-blue">Anywhere — CB to ST</span>
-        <p style="margin-top:8px"><strong>Engine</strong> primary — the best "plug anywhere" archetype. Three defensive PlayStyles+ work at CB and CDM; passing and stamina carry through CM. Unlock <strong>Finisher</strong> later for attacking nights. Adam fills whatever gap exists on any given night — the ultimate insurance policy.</p>
-      </div>
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="logo" id="gateLogo">🌱</div>
+    <h2>Study Planner</h2>
+    <p id="gateMsg">Connecting…</p>
+    <div id="loginForm" style="display:none;">
+      <input id="loginEmail" type="email" placeholder="Family email" autocomplete="username">
+      <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password">
+      <button class="btn" id="loginBtn">Log in</button>
+      <div class="login-err" id="loginErr"></div>
+      <div class="login-hint">Use the family email &amp; password you set up. Everyone in the family uses the same login, on any device.</div>
     </div>
   </div>
 </div>
 
-<!-- ============ STRATEGY ============ -->
-<div id="strategy" class="panel">
-  <div class="strat-section">
-    <div class="section-title">Strategy — Built for 3-5</div>
+<div class="wrap">
 
-    <div class="strat-block">
-      <h3>Design Philosophy</h3>
-      <p>Most Pro Clubs guides assume 8-11 humans. Lack of Class typically runs 3-5. That changes everything. You can't play wide formations with AI wingers and expect creativity — AI wingers are predictable and easy to defend. Instead, the system concentrates humans through the center where they make the biggest impact, and lets AI handle the structured roles (defense, GK, CDM) where predictability is actually an asset.</p>
-      <p>The <span class="highlight">4-1-2-1-2 Narrow</span> is the foundation because it puts all four core humans (Jordan, Dylan, Mike, Charlie) within one pass of each other. No human is isolated on a wing waiting for a ball that never comes. Every touch matters, and Jordan sits right in the middle of it all.</p>
+  <header class="top">
+    <div class="logo">🌱</div>
+    <div class="title-block">
+      <h1>My Study Planner</h1>
+      <p id="countdown">—</p>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="sync-chip"><span class="sync-dot" id="syncDot"></span><span id="syncText">Synced</span></div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="today">☀️ Today</button>
+    <button class="tab" data-tab="week">🗓️ This Week</button>
+    <button class="tab" data-tab="month">📅 Month</button>
+    <button class="tab" data-tab="classes">📚 Classes</button>
+    <button class="tab" data-tab="settings">⚙️ Settings</button>
+  </nav>
+
+  <!-- TODAY -->
+  <section id="today" class="panel active"></section>
+
+  <!-- WEEK -->
+  <section id="week" class="panel">
+    <div class="row" style="justify-content:space-between;margin-bottom:14px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn ghost sm" id="wkPrev">◀</button>
+        <b id="wkLabel" style="min-width:180px;text-align:center;display:inline-block;"></b>
+        <button class="btn ghost sm" id="wkNext">▶</button>
+        <button class="btn ghost sm" id="wkToday">Today</button>
+      </div>
+      <div class="save-note">Drag any task to another day 🖐️</div>
+    </div>
+    <div class="board" id="board"></div>
+    <p class="save-note" style="margin-top:12px;">Tip: moving a task <b>pins</b> it to that day. Use “Re-balance” in Settings to clear all manual moves.</p>
+  </section>
+
+  <!-- MONTH -->
+  <section id="month" class="panel">
+    <div class="row" style="justify-content:space-between;margin-bottom:14px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn ghost sm" id="moPrev">◀</button>
+        <b id="moLabel" style="min-width:170px;text-align:center;display:inline-block;"></b>
+        <button class="btn ghost sm" id="moNext">▶</button>
+      </div>
+      <div class="save-note">🟢 light · 🟡 medium · 🔴 heavy day</div>
+    </div>
+    <div class="card"><div class="month" id="monthGrid"></div></div>
+  </section>
+
+  <!-- CLASSES -->
+  <section id="classes" class="panel">
+    <div class="row" style="justify-content:space-between;margin-bottom:14px;">
+      <div class="section-title">📚 Your Classes</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn ghost sm" id="addClassBtn">+ Add class</button>
+        <button class="btn sm" id="importBtn">📋 Paste a to-do list</button>
+      </div>
+    </div>
+    <div class="grid cols-auto" id="classGrid"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="settings" class="panel">
+    <div class="card" style="margin-bottom:16px;">
+      <div class="section-title">🎨 Make it hers</div>
+      <label class="fld" style="margin-bottom:14px;max-width:360px;">Planner name (put her name here!)
+        <input id="appTitle" placeholder="My Study Planner">
+      </label>
+      <div class="fld" style="margin-bottom:8px;">Theme</div>
+      <div id="themePicker" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
     </div>
 
-    <div class="strat-block">
-      <h3>The Core Four Setup</h3>
-      <p>Your most common lineup is Charlie, Jordan, Dylan, and Mike. Here's how the relationships work in the narrow diamond:</p>
-      <p><span class="hl-j">Jordan (CM)</span> is the hub. He receives from the AI CDM, drives forward, and has three passing options: Dylan centrally, Mike left, Charlie right. Every attack flows through Jordan.</p>
-      <p><span class="highlight">Dylan (CAM)</span> is the final-ball specialist. He receives from Jordan and picks the right pass to Mike or Charlie. Dylan also drops to create a midfield overload when the opponent presses high.</p>
-      <p><span class="highlight">Mike (LST)</span> and <span class="highlight">Charlie (RST)</span> are the finishing duo. Mike cuts inside from the left to shoot (Finesse Shot+). Charlie holds the ball up or makes runs in behind. Together they give the defense two different problems to solve.</p>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="section-title">🎯 Finish line</div>
+      <div class="row">
+        <label class="fld">Finish everything by
+          <input type="date" id="targetDate">
+        </label>
+        <label class="fld">Max minutes of school per day (optional)
+          <input type="number" id="dailyCap" min="0" step="15" placeholder="auto">
+        </label>
+        <button class="btn ok sm" id="applySchedule">Apply</button>
+      </div>
+      <div style="margin-top:14px;">
+        <div class="fld" style="margin-bottom:6px;">Days she does schoolwork</div>
+        <div class="day-toggle" id="dayToggle"></div>
+      </div>
+      <div class="hint" id="pace" style="margin-top:14px;"></div>
     </div>
 
-    <div class="strat-block">
-      <h3>When the 5th Man Arrives</h3>
-      <div class="scenario-grid">
-        <div class="scenario rec">
-          <div class="scenario-label">Jake or Max joins → CDM</div>
-          <p>Cleanest fit. They replace AI at CDM. Formation stays 4-1-2-1-2. Immediate upgrade — a human CDM reads play better than AI and the Jake-Jordan or Max-Jordan pairing is more cohesive.</p>
-        </div>
-        <div class="scenario rec">
-          <div class="scenario-label">Brian joins → Switch to 4-2-3-1 Wide</div>
-          <p>Brian needs a wing to be effective. Shift formation: Mike to LW, Brian to RW, Dylan stays CAM, Jordan drops to the pivot with AI CDM partner, Charlie lone ST. You lose the two-striker dynamic but gain width and counter-attack speed.</p>
-        </div>
-        <div class="scenario">
-          <div class="scenario-label">Adam joins → Most needed spot</div>
-          <p>Adam's Engine archetype means he can fill CDM, CM, or even CB if you want to run a human in the back. CDM is the default slot.</p>
-        </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="section-title">⏱️ Effort estimates</div>
+      <p class="save-note" style="margin-bottom:10px;">How many minutes each type of assignment usually takes. Change one and the whole schedule updates.</p>
+      <div id="catEditor" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🔧 Tools & backup</div>
+      <div class="row">
+        <button class="btn ghost sm" id="rebalance">♻️ Re-balance (clear manual moves)</button>
+        <button class="btn ghost sm" id="exportBtn">⬇️ Save a backup file</button>
+        <button class="btn ghost sm" id="importFileBtn">⬆️ Load a backup</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none;">
+        <button class="btn ghost sm" id="resetBtn" style="color:var(--danger);">🗑️ Reset everything</button>
       </div>
     </div>
 
-    <div class="strat-block">
-      <h3>The Dylan–Jordan Swap</h3>
-      <p>Your biggest tactical weapon doesn't require a formation change — just a verbal call. Two modes from the same shape:</p>
-      <p><strong>Default:</strong> <span class="hl-j">Jordan at CM</span>, Dylan at CAM. Jordan controls tempo and feeds Dylan, who threads the final ball. Best when dominating possession.</p>
-      <p><strong>Chase mode:</strong> <span class="hl-j">Jordan pushes to CAM</span>, Dylan drops to CM. Your best player is now in the most dangerous zone. Use when trailing. Jordan's finishing and dribbling can turn a game from the #10 position.</p>
+    <div class="card" style="margin-top:16px;">
+      <div class="section-title">👪 Family account</div>
+      <p class="save-note" id="acctInfo" style="margin-bottom:10px;">—</p>
+      <button class="btn ghost sm" id="logoutBtn">🚪 Log out</button>
     </div>
+  </section>
 
-    <div class="strat-block">
-      <h3>AI Management — Critical at 3-5 Players</h3>
-      <p>With 3-5 humans, AI is filling 6-8 spots. This isn't a weakness — it's a feature, if managed correctly.</p>
-      <p><strong>AI strengths:</strong> Defending shape, positional discipline, tracking runs, standing tackles. AI CBs and FBs are solid in FC 26 when you invest in facilities.</p>
-      <p><strong>AI weaknesses:</strong> Creativity, through balls, wide play, pressing triggers. This is why you don't want AI at CAM or winger — they're wasted there.</p>
-      <p><strong>Facility investment priority:</strong> <span class="highlight">Defenders (40%) → Goalkeeper (30%) → Midfield (20%) → Attackers (10%)</span>. With 4 humans playing centrally and up front, you almost never need AI to attack. Pour everything into making the back line competent.</p>
-      <p><strong>Key tip:</strong> The AI CDM in a 4-1-2-1-2 is actually quite reliable — it sits deep, wins headers, and makes simple passes. Don't be afraid of running with AI at CDM on 4-player nights. Jordan's work rate covers the gap.</p>
-    </div>
-
-    <div class="strat-block">
-      <h3>Tactical Settings</h3>
-      <p><strong>Defensive depth:</strong> <span class="highlight">55-60</span>. Slightly lower than a full human squad because your AI defenders need a bit less space to cover. This keeps the lines compact so Jordan's pressing is effective.</p>
-      <p><strong>Build-up:</strong> <span class="highlight">Balanced</span>. Short Passing if you want to slow things down and let Jordan orchestrate. Counter if you're absorbing pressure and springing Mike/Charlie on the break.</p>
-      <p><strong>Width:</strong> <span class="highlight">Narrow</span> in the 4-1-2-1-2 (AI fullbacks provide width). Default in the 4-2-3-1 when you have human wingers.</p>
-      <p><strong>Pressing:</strong> Balanced. Don't use high press with 3-4 humans — you'll leave too many gaps. Let the AI hold shape and press as a unit.</p>
-    </div>
-
-    <div class="strat-block">
-      <h3>Archetype Unlock Priorities</h3>
-      <p><span class="hl-j">Jordan:</span> Primary <strong>Maestro</strong>. Secondary: <strong>Engine</strong> for lockdown games.</p>
-      <p><span class="highlight">Dylan:</span> Primary <strong>Creator</strong>. Secondary: <strong>Maestro</strong> for CM/CDM nights.</p>
-      <p><span class="highlight">Mike:</span> Primary <strong>Magician</strong>. No urgent secondary needed — Mike always plays the same role.</p>
-      <p><span class="highlight">Charlie:</span> Primary <strong>Target</strong> or <strong>Finisher</strong> (team preference). Secondary: the other one, for different match situations.</p>
-      <p><span class="highlight">Jake:</span> Primary <strong>Recycler</strong>. No secondary needed — Jake's role never changes.</p>
-      <p><span class="highlight">Brian:</span> Primary <strong>Spark</strong>. Secondary: <strong>Engine</strong> for LCM rotation.</p>
-      <p><span class="highlight">Max:</span> Switch to <strong>Engine</strong> if possible — strongest defensive archetype and more wing flexibility than Recycler.</p>
-      <p><span class="highlight">Adam:</span> <strong>Engine</strong> primary. Unlock <strong>Finisher</strong> later.</p>
-    </div>
-  </div>
 </div>
 
-<!-- ============ AVAILABILITY ============ -->
-<div id="availability" class="panel">
-  <div class="roster-section">
-    <div class="section-title">Weekly Availability Matrix</div>
-    <p style="color:var(--muted);font-size:0.88rem;line-height:1.6;margin-bottom:20px;">Based on typical availability. Green = likely on, amber = sometimes, dark = unlikely. Plan formations around who's confirmed each night.</p>
-
-    <div class="avail-grid">
-      <div class="avail-card">
-        <div class="avail-name" style="color:var(--jordan)">Jordan ★</div>
-        <div class="avail-freq">~3 nights / week</div>
-        <div class="avail-dots"><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot off"></div><div class="avail-dot off"></div></div>
-      </div>
-      <div class="avail-card">
-        <div class="avail-name" style="color:var(--accent)">Dylan</div>
-        <div class="avail-freq">~3 nights / week</div>
-        <div class="avail-dots"><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot off"></div><div class="avail-dot off"></div></div>
-      </div>
-      <div class="avail-card">
-        <div class="avail-name" style="color:var(--accent)">Charlie</div>
-        <div class="avail-freq">~3 nights / week</div>
-        <div class="avail-dots"><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot off"></div><div class="avail-dot off"></div></div>
-      </div>
-      <div class="avail-card">
-        <div class="avail-name" style="color:var(--accent)">Mike</div>
-        <div class="avail-freq">~3 nights / week</div>
-        <div class="avail-dots"><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot off"></div><div class="avail-dot off"></div></div>
-      </div>
-      <div class="avail-card">
-        <div class="avail-name" style="color:var(--blue)">Jake</div>
-        <div class="avail-freq">~2 nights / week</div>
-        <div class="avail-dots"><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot off"></div><div class="avail-dot off"></div><div class="avail-dot off"></div></div>
-      </div>
-      <div class="avail-card">
-        <div class="avail-name" style="color:var(--blue)">Brian</div>
-        <div class="avail-freq">~2 nights / week</div>
-        <div class="avail-dots"><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot off"></div><div class="avail-dot off"></div><div class="avail-dot off"></div></div>
-      </div>
-      <div class="avail-card">
-        <div class="avail-name" style="color:var(--blue)">Max</div>
-        <div class="avail-freq">~2 nights / week</div>
-        <div class="avail-dots"><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot off"></div><div class="avail-dot off"></div><div class="avail-dot off"></div></div>
-      </div>
-      <div class="avail-card">
-        <div class="avail-name" style="color:var(--muted)">Adam</div>
-        <div class="avail-freq">~1 night / week</div>
-        <div class="avail-dots"><div class="avail-dot maybe"></div><div class="avail-dot off"></div><div class="avail-dot off"></div><div class="avail-dot off"></div><div class="avail-dot off"></div></div>
-      </div>
-    </div>
-
-    <div class="strat-block" style="margin-top:24px">
-      <h3>Most Common Lineups</h3>
-      <div class="scenario-grid">
-        <div class="scenario rec">
-          <div class="scenario-label">Most Frequent — Core Four (4 Players)</div>
-          <p><strong>Jordan CM • Dylan CAM • Mike LST • Charlie RST</strong><br>Formation: 4-1-2-1-2 Narrow. AI fills CDM, defense, and GK. This is your bread and butter — practice this the most.</p>
-        </div>
-        <div class="scenario rec">
-          <div class="scenario-label">Common — Core Four + Jake or Max (5 Players)</div>
-          <p><strong>Jake/Max CDM • Jordan CM • Dylan CAM • Mike LST • Charlie RST</strong><br>Formation: 4-1-2-1-2 Narrow. Same shape, but with a human anchor behind Jordan. Immediate upgrade to defensive solidity.</p>
-        </div>
-        <div class="scenario rec">
-          <div class="scenario-label">Common — Core Four + Brian (5 Players)</div>
-          <p><strong>Jake/AI CDM • Jordan CM • Dylan CAM • Mike LW • Brian RW • Charlie ST</strong><br>Formation: 4-2-3-1 Wide. Brian unlocks the wings. Jordan drops into the pivot. Different feel, more width.</p>
-        </div>
-        <div class="scenario">
-          <div class="scenario-label">Skeleton — 3 Players</div>
-          <p><strong>Jordan CM • Dylan CAM • Mike or Charlie ST</strong><br>Formation: 4-2-3-1 (AI heavy). Three humans down the spine. AI handles everything else. Invest in facilities.</p>
-        </div>
-        <div class="scenario">
-          <div class="scenario-label">Big Night — 6-7 Players</div>
-          <p><strong>Jake CDM • Jordan CM(B2B) • Dylan CAM • Mike LW • Brian RW • Charlie ST • Max/Adam flex</strong><br>Formation: 4-2-3-1 Wide. Your strongest possible lineup. Enjoy it when it happens.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="strat-block">
-      <h3>Decision Tree — Who Shows Up?</h3>
-      <p>When you're in the lobby, run through this:</p>
-      <p><strong>1.</strong> Core Four all on? → <span class="highlight">4-1-2-1-2 Narrow</span>. Done.</p>
-      <p><strong>2.</strong> + Jake or Max? → Same formation, they take CDM.</p>
-      <p><strong>3.</strong> + Brian (no Jake/Max)? → <span class="highlight">Switch to 4-2-3-1 Wide</span>. Brian needs a wing.</p>
-      <p><strong>4.</strong> + Both Brian AND Jake/Max? → <span class="highlight">4-2-3-1 Wide</span> with Jake CDM, Jordan B2B, Brian RW.</p>
-      <p><strong>5.</strong> Only 3 tonight? → <span class="highlight">4-2-3-1</span>, go down the spine. Let AI handle structure.</p>
-      <p><strong>6.</strong> Missing one Core Four member? → Whoever's on slides into the vacated role. Jordan is the one constant who never moves from CM.</p>
-    </div>
-  </div>
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal" id="modalBox"></div>
 </div>
 
 <script>
-function switchPanel(id) {
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  event.target.classList.add('active');
+"use strict";
+
+/* ---------- data ---------- */
+const CLASS_COLORS = ["#ff6b9d","#ffa41b","#4d7cff","#9b5de5","#00c2a8","#22c55e","#f43f5e","#0ea5e9"];
+
+const DEFAULT_CATEGORIES = {
+  "Quiz":            {min:15, kw:["quiz"]},
+  "Checkpoint":      {min:20, kw:["checkpoint"]},
+  "InQuizitive":     {min:25, kw:["inquizitive"]},
+  "Knowledge Check": {min:20, kw:["knowledge check"]},
+  "Progress Check":  {min:20, kw:["progress check"]},
+  "Discussion":      {min:15, kw:["discussion"]},
+  "Exercise":        {min:30, kw:["exercise"]},
+  "Dropbox":         {min:30, kw:["dropbox"]},
+  "Lab":             {min:60, kw:["lab"]},
+  "Practice Test":   {min:45, kw:["practice test"]},
+  "Exam":            {min:60, kw:["exam","test"]},
+  "Writing":         {min:60, kw:["turnitin","research plan","report","essay","draft","thesis","outline","reading log","novel guide","guide","slide show"]},
+  "Major Writing":   {min:90, kw:["revised research report","literary analysis draft","final draft"]},
+  "Honors":          {min:45, kw:["honor"]},
+  "Assignment":      {min:30, kw:["assignment"]}
+};
+
+// English pre-loaded from the portal to-do list (in sequence)
+function categorize(title){
+  const t = title.toLowerCase();
+  const cats = STATE ? STATE.categories : DEFAULT_CATEGORIES;
+  // check most-specific first: Major Writing, then the rest in a sensible order
+  const order = ["Major Writing","Practice Test","Exam","InQuizitive","Quiz","Knowledge Check","Progress Check","Checkpoint","Lab","Dropbox","Exercise","Discussion","Writing","Honors","Assignment"];
+  for(const name of order){
+    const c = cats[name]; if(!c) continue;
+    if(c.kw.some(k=>t.includes(k))) return {type:name, min:c.min};
+  }
+  return {type:"Assignment", min:(cats["Assignment"]?cats["Assignment"].min:30)};
 }
-function switchFm(id) {
-  document.querySelectorAll('.fm-view').forEach(f => f.classList.remove('active'));
-  document.querySelectorAll('.fm-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  event.target.classList.add('active');
+
+function seedClasses(){
+  // No personal data ships in the public app. Classes/assignments live in the
+  // private family cloud account and are added by importing the seed backup.
+  return { classes:[], tasks:[] };
 }
-function toggleCard(el) {
-  el.querySelector('.rc-body').classList.toggle('open');
+
+/* ---------- themes ---------- */
+const THEMES = {
+  sunshine: {
+    label:"☀️ Sunshine", logo:"🌱", tagline:"Small steps, big finish 🌟",
+    todayTitle:"📌 Today's stack",
+    offMsg:"It's a day off — relax! 🎉 (You can change work days in Settings.)",
+    clearMsg:"Nothing scheduled today. Nice work getting ahead! 🎉",
+    msgs:[
+      "One step at a time. You've got this! 💪",
+      "Small chunks beat one big mountain. Let's go! ⛰️",
+      "Every task you finish is one less to worry about. ✨",
+      "Progress, not perfection. Knock out today's stack! 🌟",
+      "Future-you will be so glad you did this today. 💛"
+    ]
+  },
+  loveisland: {
+    label:"🌴 Love Island", logo:"🌴", tagline:"Crack on, bombshell ☀️💗",
+    todayTitle:"🌴 Today in the Villa",
+    offMsg:"Day off in the villa — go get your sun ☀️🍹 (change work days in Settings).",
+    clearMsg:"You've cleared the villa for today! Absolute grafter 💗🔥",
+    msgs:[
+      "I've got a text! 📱 Time to crack on with today's tasks 💦",
+      "You're my type on paper 📄 — let's finish these 💗",
+      "Grafting hard today pays off, hun 🌴☀️",
+      "Don't be a mug — smash today's list 💪🔥",
+      "It is what it is… but today's list is tiny 💅✨"
+    ]
+  },
+  outerbanks: {
+    label:"🌊 Outer Banks", logo:"🌊", tagline:"Pogue Life 🏝️ — P4L",
+    todayTitle:"🌊 Today's Catch",
+    offMsg:"No worries — day off. Hit the beach 🏖️ (change work days in Settings).",
+    clearMsg:"Nothing left today — the gold's yours. Pogue Life 🏝️✨",
+    msgs:[
+      "Pogue Life 🏝️ — knock these out, then hit the beach 🌊",
+      "The gold's on the other side of this list 🧭",
+      "Steady on the boat ⛵ — small waves today, no worries 😎",
+      "P4L: handle today's few, you got this 🤙",
+      "Full send on today's list, then Chateau time 🌅"
+    ]
+  }
+};
+function theme(){ return THEMES[(STATE&&STATE.settings&&STATE.settings.theme)] || THEMES.sunshine; }
+
+function defaultState(){
+  const seeded = seedClasses();
+  return {
+    version:1,
+    settings:{ targetDate:"2026-08-25", dailyCapMin:null, workDays:[0,1,2,3,4,5,6], theme:"sunshine", appTitle:"My Study Planner" },
+    categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
+    classes: seeded.classes,
+    tasks: seeded.tasks
+  };
 }
+
+function migrate(st){
+  st.settings = st.settings || {};
+  const s=st.settings;
+  if(!s.theme) s.theme="sunshine";
+  if(s.appTitle==null) s.appTitle="My Study Planner";
+  if(!Array.isArray(s.workDays)) s.workDays=[0,1,2,3,4,5,6];
+  if(!s.targetDate) s.targetDate="2026-08-25";
+  if(s.dailyCapMin===undefined) s.dailyCapMin=null;
+  // merge in any new category types; keep the user's edited minutes, refresh keywords
+  st.categories = st.categories || {};
+  for(const k in DEFAULT_CATEGORIES){
+    if(!st.categories[k]) st.categories[k]=JSON.parse(JSON.stringify(DEFAULT_CATEGORIES[k]));
+    else st.categories[k].kw = DEFAULT_CATEGORIES[k].kw.slice();
+  }
+  if(!Array.isArray(st.classes)) st.classes=[];
+  if(!Array.isArray(st.tasks)) st.tasks=[];
+  // one-time upgrade: replace old placeholder classes with the real assignment lists,
+  // preserving any real (non-placeholder) tasks and their done-state.
+  if(st.tasks.some(t=>t.placeholder)){
+    const seeded=seedClasses();
+    const phIds=new Set(st.tasks.filter(t=>t.placeholder).map(t=>t.classId));
+    st.tasks = st.tasks.filter(t=>!phIds.has(t.classId)).concat(seeded.tasks.filter(t=>phIds.has(t.classId)));
+    seeded.classes.forEach(sc=>{ if(phIds.has(sc.id)){ const ex=st.classes.find(c=>c.id===sc.id); if(ex){ ex.teacher=sc.teacher; ex.grade=sc.grade; } else st.classes.push(sc); } });
+  }
+  return st;
+}
+
+/* ---------- persistence ---------- */
+const LS_KEY="studyPlanner.v1";
+let STATE = null;
+function load(){
+  try{ const raw=localStorage.getItem(LS_KEY); if(raw){STATE=migrate(JSON.parse(raw)); return;} }catch(e){}
+  STATE=defaultState();
+}
+function saveLocal(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(STATE)); }catch(e){} }
+function save(){ saveLocal(); if(cloudReady && !applyingRemote) scheduleCloudPush(); }
+
+/* ---------- date helpers ---------- */
+function fmt(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function parseD(s){ const p=s.split("-").map(Number); return new Date(p[0],p[1]-1,p[2]); }
+function todayStr(){ return fmt(new Date()); }
+function addDays(s,n){ const d=parseD(s); d.setDate(d.getDate()+n); return fmt(d); }
+function weekday(s){ return parseD(s).getDay(); }
+function daysBetween(a,b){ return Math.round((parseD(b)-parseD(a))/86400000); }
+const DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MON=["January","February","March","April","May","June","July","August","September","October","November","December"];
+function prettyDate(s){ const d=parseD(s); return DOW[d.getDay()]+", "+MON[d.getMonth()]+" "+d.getDate(); }
+
+function workingDays(start,end,wd){
+  const set=new Set(wd), out=[]; let c=start, guard=0;
+  while(parseD(c)<=parseD(end) && guard<800){ if(set.has(weekday(c))) out.push(c); c=addDays(c,1); guard++; }
+  return out;
+}
+
+/* ---------- scheduler ---------- */
+function computeSchedule(){
+  const s=STATE.settings;
+  const start = todayStr();
+  const end = s.targetDate < start ? start : s.targetDate;
+  const days = workingDays(start,end,s.workDays);
+  const map={}; days.forEach(d=> map[d]={date:d, tasks:[], min:0});
+  const todo = STATE.tasks.filter(t=>t.status==="todo");
+
+  const pinned=[], unpinned=[];
+  todo.forEach(t=>{ (t.pinnedDate && map[t.pinnedDate]) ? pinned.push(t) : unpinned.push(t); });
+  pinned.forEach(t=>{ map[t.pinnedDate].tasks.push(t); map[t.pinnedDate].min+=t.min; });
+
+  // round-robin across classes, each class ordered by seq
+  const byClass={};
+  unpinned.forEach(t=>{ (byClass[t.classId]=byClass[t.classId]||[]).push(t); });
+  Object.values(byClass).forEach(a=>a.sort((x,y)=>x.seq-y.seq));
+  const queues=Object.values(byClass);
+  const ordered=[];
+  let more=true;
+  while(more){ more=false; for(const q of queues){ if(q.length){ ordered.push(q.shift()); more=true; } } }
+
+  const totalMin = STATE.tasks.filter(t=>t.status==="todo").reduce((a,t)=>a+t.min,0);
+  const unpMin = ordered.reduce((a,t)=>a+t.min,0);
+  let perDay = (s.dailyCapMin && s.dailyCapMin>0) ? s.dailyCapMin : (days.length? unpMin/days.length : unpMin);
+
+  // Cumulative "water-filling": place each task on the day where the running total of
+  // minutes crosses that day's share. Spreads work evenly across every available day,
+  // preserves order, and never dumps leftovers onto the final day.
+  let placed=0;
+  for(const t of ordered){
+    let di = perDay>0 ? Math.floor(placed / perDay) : 0;
+    if(di > days.length-1) di = days.length-1;
+    if(days.length){ map[days[di]].tasks.push(t); map[days[di]].min+=t.min; placed+=t.min; }
+  }
+
+  return {map, days, perDay, totalMin, remainingCount:todo.length};
+}
+
+function minToStr(m){
+  if(m<60) return m+"m";
+  const h=Math.floor(m/60), r=m%60;
+  return r? h+"h "+r+"m" : h+"h";
+}
+function classById(id){ return STATE.classes.find(c=>c.id===id); }
+
+/* ---------- rendering ---------- */
+let SCHED=null;
+function recompute(){ SCHED=computeSchedule(); }
+
+function render(){
+  recompute(); save();
+  applyTheme();
+  renderCountdown();
+  renderToday();
+  renderWeek();
+  renderMonth();
+  renderClasses();
+  renderSettings();
+}
+
+function renderCountdown(){
+  const s=STATE.settings, today=todayStr();
+  const dleft=daysBetween(today,s.targetDate);
+  const el=document.getElementById("countdown");
+  const remaining=STATE.tasks.filter(t=>t.status==="todo").length;
+  if(dleft<0){ el.textContent="Target date has passed — pick a new finish date in Settings."; return; }
+  el.textContent = remaining+" assignments left · "+dleft+" days until "+prettyDate(s.targetDate);
+}
+
+function applyTheme(){
+  const th=theme();
+  document.body.setAttribute("data-theme", STATE.settings.theme||"sunshine");
+  document.querySelectorAll(".logo").forEach(el=>el.textContent=th.logo);
+  document.querySelector(".title-block h1").textContent=STATE.settings.appTitle||"My Study Planner";
+}
+
+function renderToday(){
+  const el=document.getElementById("today");
+  const today=todayStr();
+  const isWork = new Set(STATE.settings.workDays).has(weekday(today));
+  const day = SCHED.map[today];
+  const list = day ? day.tasks.slice() : [];
+  // also show anything the user pinned to today but already done today? keep simple: show scheduled todo
+  const doneToday = STATE.tasks.filter(t=>t.status==="done" && t.doneDate===today);
+  const totalToday = list.length + doneToday.length;
+  const pct = totalToday? Math.round(doneToday.length/totalToday*100) : (isWork?0:100);
+  const th=theme();
+  const msg = th.msgs[ (parseD(today).getDate()) % th.msgs.length ];
+
+  let html = `<div class="card today-hero" style="margin-bottom:16px;">
+      <div class="ring" style="--p:${pct}"><div><b>${pct}%</b><span>today</span></div></div>
+      <div class="hero-msg">
+        <h2>${prettyDate(today)}</h2>
+        <p>${ !isWork ? th.offMsg : (list.length? msg : th.clearMsg) }</p>
+        <div class="hero-stats">
+          <div><b>${doneToday.length}/${totalToday||0}</b><span>done today</span></div>
+          <div><b>${minToStr(list.reduce((a,t)=>a+t.min,0))}</b><span>left today</span></div>
+          <div><b>${STATE.tasks.filter(t=>t.status==="todo").length}</b><span>left overall</span></div>
+        </div>
+      </div>
+    </div>`;
+
+  if(list.length){
+    html += `<div class="section-title">${th.todayTitle}</div>`;
+    html += list.map(t=>taskRow(t)).join("");
+  } else if(isWork){
+    html += `<div class="card empty"><div class="em">🎉</div><p>All clear for today. Peek at <b>This Week</b> to get ahead if you're feeling it.</p></div>`;
+  }
+  if(doneToday.length){
+    html += `<div class="section-title" style="margin-top:18px;">✅ Finished today</div>`;
+    html += doneToday.map(t=>taskRow(t)).join("");
+  }
+  el.innerHTML=html;
+  wireTaskRows(el);
+}
+
+function taskRow(t){
+  const c=classById(t.classId)||{color:"#ccc",name:""};
+  const done=t.status==="done";
+  return `<div class="task ${done?'done':''}" style="--c:${c.color}" draggable="true" data-id="${t.id}">
+      <div class="check ${done?'on':''}" data-check="${t.id}">${done?'✓':''}</div>
+      <div class="t-body">
+        <div class="t-title">${esc(t.title)}</div>
+        <div class="t-sub">${esc(c.name)}</div>
+      </div>
+      <span class="t-type">${esc(t.type)}</span>
+      <span class="t-min">${minToStr(t.min)}</span>
+      <button class="t-edit" data-edit="${t.id}" title="Edit this assignment">✎</button>
+    </div>`;
+}
+
+function wireTaskRows(scope){
+  scope.querySelectorAll("[data-check]").forEach(el=>{
+    el.onclick=(e)=>{ e.stopPropagation(); toggleDone(el.getAttribute("data-check")); };
+  });
+  scope.querySelectorAll("[data-edit]").forEach(el=>{
+    el.onclick=(e)=>{ e.stopPropagation(); openEditTask(el.getAttribute("data-edit")); };
+  });
+  scope.querySelectorAll(".task[draggable]").forEach(el=>{
+    el.addEventListener("dragstart",ev=>{ ev.dataTransfer.setData("text/plain", el.getAttribute("data-id")); });
+  });
+}
+
+function openEditTask(id){
+  const t=STATE.tasks.find(x=>x.id===id); if(!t) return;
+  const c=classById(t.classId)||{name:""};
+  const catOpts=Object.keys(STATE.categories).map(n=>`<option value="${esc(n)}" ${n===t.type?'selected':''}>${esc(n)}</option>`).join("");
+  openModal(`
+    <button class="close-x" onclick="closeModal()">×</button>
+    <h3>✎ Edit assignment</h3>
+    <p class="save-note" style="margin-bottom:12px;">${esc(c.name)}</p>
+    <label class="fld" style="margin-bottom:10px;">Title
+      <input id="etTitle" value="${esc(t.title)}">
+    </label>
+    <div class="row" style="margin-bottom:12px;">
+      <label class="fld">Type
+        <select id="etType">${catOpts}</select>
+      </label>
+      <label class="fld">Minutes
+        <input id="etMin" type="number" min="0" step="5" value="${t.min}">
+      </label>
+      <span class="save-note" style="max-width:230px;">Pick a type to auto-fill the usual time, then fine-tune the minutes for this specific one.</span>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:space-between;">
+      <button class="btn ok sm" onclick="saveEditTask('${id}')">Save</button>
+      <button class="btn ghost sm" style="color:var(--danger);" onclick="deleteTask('${id}')">🗑️ Delete</button>
+    </div>
+  `);
+  // when type changes, suggest that type's default minutes
+  document.getElementById("etType").onchange=function(){
+    const cat=STATE.categories[this.value];
+    if(cat) document.getElementById("etMin").value=cat.min;
+  };
+}
+function saveEditTask(id){
+  const t=STATE.tasks.find(x=>x.id===id); if(!t) return;
+  const title=document.getElementById("etTitle").value.trim();
+  if(title) t.title=title;
+  t.type=document.getElementById("etType").value;
+  t.min=Math.max(0,Number(document.getElementById("etMin").value)||0);
+  delete t.placeholder;
+  closeModal(); render();
+}
+function deleteTask(id){
+  STATE.tasks=STATE.tasks.filter(x=>x.id!==id);
+  closeModal(); render();
+}
+
+function toggleDone(id){
+  const t=STATE.tasks.find(x=>x.id===id); if(!t) return;
+  if(t.status==="done"){ t.status="todo"; delete t.doneDate; }
+  else { t.status="done"; t.doneDate=todayStr(); }
+  // keep class done-count in sync (portal baseline + our completions)
+  render();
+}
+
+/* ----- week board ----- */
+let weekStart = null; // Sunday of shown week
+function initWeek(){ const t=parseD(todayStr()); t.setDate(t.getDate()-t.getDay()); weekStart=fmt(t); }
+function renderWeek(){
+  if(!weekStart) initWeek();
+  const board=document.getElementById("board");
+  const today=todayStr();
+  const workSet=new Set(STATE.settings.workDays);
+  document.getElementById("wkLabel").textContent = prettyDate(weekStart).split(", ")[1] + " – " + prettyDate(addDays(weekStart,6)).split(", ")[1];
+  let html="";
+  for(let i=0;i<7;i++){
+    const d=addDays(weekStart,i);
+    const day=SCHED.map[d];
+    const tasks=day?day.tasks:[];
+    const isToday=d===today, isOff=!workSet.has(weekday(d));
+    const load=tasks.reduce((a,t)=>a+t.min,0);
+    html+=`<div class="day-col ${isToday?'today':''} ${isOff?'off':''}" data-date="${d}">
+        <div class="day-head">${DOW[weekday(d)]}<small>${MON[parseD(d).getMonth()].slice(0,3)} ${parseD(d).getDate()}</small></div>
+        <div class="day-load">${tasks.length?minToStr(load):(isOff?'day off':'—')}</div>
+        ${tasks.map(t=>miniTask(t)).join("")}
+      </div>`;
+  }
+  board.innerHTML=html;
+  wireBoard(board);
+}
+function miniTask(t){
+  const c=classById(t.classId)||{color:"#ccc",name:""};
+  return `<div class="mini-task" style="--c:${c.color}" draggable="true" data-id="${t.id}">
+      <div class="mt-title">${esc(t.title)}</div>
+      <div class="mt-sub">${esc(c.name)} · ${esc(t.type)} · ${minToStr(t.min)}</div>
+    </div>`;
+}
+function wireBoard(board){
+  board.querySelectorAll(".mini-task").forEach(el=>{
+    el.addEventListener("dragstart",ev=>ev.dataTransfer.setData("text/plain", el.getAttribute("data-id")));
+  });
+  board.querySelectorAll(".day-col").forEach(col=>{
+    col.addEventListener("dragover",ev=>{ev.preventDefault();col.classList.add("over");});
+    col.addEventListener("dragleave",()=>col.classList.remove("over"));
+    col.addEventListener("drop",ev=>{
+      ev.preventDefault(); col.classList.remove("over");
+      const id=ev.dataTransfer.getData("text/plain");
+      const t=STATE.tasks.find(x=>x.id===id); if(!t) return;
+      t.pinnedDate=col.getAttribute("data-date"); render();
+    });
+  });
+}
+
+/* ----- month ----- */
+let monthCursor=null; // YYYY-MM-01
+function initMonth(){ const d=parseD(todayStr()); monthCursor=fmt(new Date(d.getFullYear(),d.getMonth(),1)); }
+function renderMonth(){
+  if(!monthCursor) initMonth();
+  const grid=document.getElementById("monthGrid");
+  const first=parseD(monthCursor);
+  document.getElementById("moLabel").textContent=MON[first.getMonth()]+" "+first.getFullYear();
+  const today=todayStr();
+  const startPad=first.getDay();
+  const dim=new Date(first.getFullYear(),first.getMonth()+1,0).getDate();
+  let html=DOW.map(d=>`<div class="mhead">${d}</div>`).join("");
+  for(let i=0;i<startPad;i++) html+=`<div class="mcell blank"></div>`;
+  for(let day=1;day<=dim;day++){
+    const ds=fmt(new Date(first.getFullYear(),first.getMonth(),day));
+    const info=SCHED.map[ds];
+    const load=info?info.min:0;
+    let cls="load"; if(load>SCHED.perDay*1.5) cls="load heavy"; else if(load>SCHED.perDay*0.9) cls="load warn";
+    html+=`<div class="mcell ${ds===today?'today':''}" data-date="${ds}">
+        <div class="dn">${day}</div>
+        ${load?`<span class="${cls}">${minToStr(load)}</span>`:""}
+      </div>`;
+  }
+  grid.innerHTML=html;
+  grid.querySelectorAll(".mcell[data-date]").forEach(c=>{
+    c.onclick=()=>{ const d=c.getAttribute("data-date"); const t=parseD(d); t.setDate(t.getDate()-t.getDay()); weekStart=fmt(t); switchTab("week"); };
+  });
+}
+
+/* ----- classes ----- */
+function renderClasses(){
+  const grid=document.getElementById("classGrid");
+  grid.innerHTML=STATE.classes.map(c=>{
+    const todo=STATE.tasks.filter(t=>t.classId===c.id && t.status==="todo").length;
+    const doneByUs=STATE.tasks.filter(t=>t.classId===c.id && t.status==="done").length;
+    const doneTotal=(c.done||0)+doneByUs;
+    const pct=c.total? Math.min(100,Math.round(doneTotal/c.total*100)) : 0;
+    const placeholder=STATE.tasks.some(t=>t.classId===c.id && t.placeholder);
+    return `<div class="class-tile" style="--c:${c.color}">
+        <div class="badge-grade">${c.grade!=null?c.grade+"%":""}</div>
+        <h3>${esc(c.name)}</h3>
+        <div class="teacher">${c.teacher?esc(c.teacher):"&nbsp;"}</div>
+        <div class="progress-wrap">
+          <div class="bar"><i style="width:${pct}%"></i></div>
+          <div class="progress-meta"><span>${doneTotal}/${c.total} in portal</span><span>${pct}%</span></div>
+        </div>
+        <div class="tile-foot">
+          <span class="pill">${todo} to do</span>
+          <div style="display:flex;gap:6px;">
+            <button class="btn-mini" data-import="${c.id}">📋 Paste</button>
+            <button class="btn-mini" data-view="${c.id}">View</button>
+          </div>
+        </div>
+        ${placeholder?`<div class="save-note" style="margin-top:8px;color:#e07b00;">⚠️ placeholder items — paste the real list</div>`:""}
+      </div>`;
+  }).join("");
+  grid.querySelectorAll("[data-import]").forEach(b=>b.onclick=()=>openImport(b.getAttribute("data-import")));
+  grid.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>openClassView(b.getAttribute("data-view")));
+}
+
+/* ----- settings ----- */
+function renderSettings(){
+  // personalization
+  const at=document.getElementById("appTitle");
+  at.value=STATE.settings.appTitle||"";
+  at.onchange=function(){ STATE.settings.appTitle=this.value.trim()||"My Study Planner"; render(); };
+  const SW={sunshine:["#ff6b9d","#9b5de5"],loveisland:["#ff2e88","#ff7a4d"],outerbanks:["#0d7c86","#e0a83b"]};
+  const tp=document.getElementById("themePicker");
+  tp.innerHTML=Object.keys(THEMES).map(k=>{
+    const th=THEMES[k], active=STATE.settings.theme===k, sw=SW[k]||SW.sunshine;
+    return `<button data-theme-btn="${k}" style="cursor:pointer;font:inherit;font-weight:800;color:var(--ink);border:2px solid ${active?'var(--accent-b)':'var(--line)'};background:#fff;border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:9px;">
+       <span style="width:36px;height:24px;border-radius:7px;background:linear-gradient(135deg,${sw[0]},${sw[1]});"></span>${th.label}${active?' ✓':''}</button>`;
+  }).join("");
+  tp.querySelectorAll("[data-theme-btn]").forEach(b=>b.onclick=()=>{ STATE.settings.theme=b.getAttribute("data-theme-btn"); render(); });
+
+  document.getElementById("targetDate").value=STATE.settings.targetDate;
+  document.getElementById("dailyCap").value=STATE.settings.dailyCapMin||"";
+  const dt=document.getElementById("dayToggle");
+  dt.innerHTML=DOW.map((d,i)=>`<button data-dow="${i}" class="${STATE.settings.workDays.includes(i)?'on':''}">${d}</button>`).join("");
+  dt.querySelectorAll("[data-dow]").forEach(b=>b.onclick=()=>{
+    const i=Number(b.getAttribute("data-dow"));
+    const set=new Set(STATE.settings.workDays);
+    set.has(i)?set.delete(i):set.add(i);
+    STATE.settings.workDays=[...set].sort();
+    render();
+  });
+  // categories
+  const ce=document.getElementById("catEditor");
+  ce.innerHTML=Object.keys(STATE.categories).map(name=>`
+    <label class="fld">${esc(name)}
+      <input type="number" min="0" step="5" value="${STATE.categories[name].min}" data-cat="${esc(name)}"> minutes
+    </label>`).join("");
+  ce.querySelectorAll("[data-cat]").forEach(inp=>inp.onchange=()=>{
+    const name=inp.getAttribute("data-cat"); const v=Math.max(0,Number(inp.value)||0);
+    STATE.categories[name].min=v;
+    // re-apply to existing tasks of that type
+    STATE.tasks.forEach(t=>{ if(t.type===name) t.min=v; });
+    render();
+  });
+  // pace summary
+  const pace=document.getElementById("pace");
+  const days=SCHED.days.length, mins=SCHED.totalMin;
+  const per=days?Math.round(mins/days):mins;
+  pace.innerHTML= days
+    ? `To finish <b>${SCHED.remainingCount}</b> assignments (~${minToStr(mins)} of work) by <b>${prettyDate(STATE.settings.targetDate)}</b>, that's about <b>${minToStr(per)} per working day</b> across <b>${days}</b> days. Move the finish date earlier and this goes up; later and it goes down.`
+    : `No working days between today and the finish date — pick a later date or turn on more work days.`;
+}
+
+/* ---------- modal ---------- */
+function openModal(html){ document.getElementById("modalBox").innerHTML=html; document.getElementById("modalBg").classList.add("show"); }
+function closeModal(){ document.getElementById("modalBg").classList.remove("show"); }
+document.getElementById("modalBg").addEventListener("click",e=>{ if(e.target.id==="modalBg") closeModal(); });
+
+let importTargetClass=null, importParsed=[];
+function openImport(classId){
+  importTargetClass=classId||null;
+  const opts=STATE.classes.map(c=>`<option value="${c.id}" ${c.id===classId?'selected':''}>${esc(c.name)}</option>`).join("");
+  openModal(`
+    <button class="close-x" onclick="closeModal()">×</button>
+    <h3>📋 Paste a to-do list</h3>
+    <p class="save-note" style="margin-bottom:10px;">Copy the assignment list from the portal and paste it below — or type one assignment per line. I'll detect the type and estimate the time. Pasting <b>replaces</b> this class's current to-do items.</p>
+    <label class="fld" style="margin-bottom:10px;">Class
+      <select id="impClass">${opts}</select>
+    </label>
+    <textarea id="impText" placeholder="Novel Progress Check 2&#10;3.11 The Art of Persuasion Exam&#10;4.2 Analyzing Historical Fiction Quiz&#10;..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button class="btn sm" onclick="parseImport()">Preview</button>
+      <button class="btn ok sm" id="impConfirm" style="display:none;" onclick="confirmImport()">Add these</button>
+    </div>
+    <div id="impPreview"></div>
+  `);
+}
+function parseImport(){
+  const raw=document.getElementById("impText").value;
+  const skip=/^(past due|due:|due |search|activities|to-?do)/i;
+  const lines=raw.split("\n").map(l=>l.trim()).filter(l=>l.length>2)
+    .filter(l=>!skip.test(l))
+    .filter(l=>!l.includes(" -- "))       // class attribution line
+    .filter(l=>!/^\d+$/.test(l));         // stray badge numbers
+  importParsed=lines.map(title=>({title, ...categorize(title)}));
+  const box=document.getElementById("impPreview");
+  if(!importParsed.length){ box.innerHTML=`<p class="save-note" style="margin-top:10px;">Nothing detected — paste the list or type one item per line.</p>`; return; }
+  box.innerHTML=`<div class="preview-list">${importParsed.map(p=>`
+      <div class="preview-item"><span>${esc(p.title)}</span><span style="color:var(--muted);">${p.type} · ${minToStr(p.min)}</span></div>`).join("")}</div>
+      <p class="save-note" style="margin-top:8px;">${importParsed.length} items detected. You can fine-tune times later in Settings.</p>`;
+  document.getElementById("impConfirm").style.display="inline-block";
+}
+function confirmImport(){
+  const cid=document.getElementById("impClass").value;
+  STATE.tasks=STATE.tasks.filter(t=>!(t.classId===cid && t.status==="todo")); // clear existing to-do (keep done history)
+  importParsed.forEach((p,i)=>{
+    STATE.tasks.push({id:cid+"_i"+Date_now()+"_"+i, classId:cid, title:p.title, type:p.type, min:p.min, status:"todo", seq:i, pinnedDate:null});
+  });
+  closeModal(); render(); switchTab("classes");
+}
+// avoid Date.now name clash in some linters
+function Date_now(){ return (new Date()).getTime(); }
+
+function openClassView(cid){
+  const c=classById(cid);
+  const tasks=STATE.tasks.filter(t=>t.classId===cid).sort((a,b)=>(a.status===b.status?a.seq-b.seq:(a.status==="done"?1:-1)));
+  openModal(`
+    <button class="close-x" onclick="closeModal()">×</button>
+    <h3 style="color:${c.color}">${esc(c.name)}</h3>
+    <p class="save-note" style="margin-bottom:12px;">${tasks.filter(t=>t.status==="todo").length} to do · ${tasks.filter(t=>t.status==="done").length} done here</p>
+    <div style="max-height:52vh;overflow:auto;">
+      ${tasks.map(t=>taskRow(t)).join("") || '<p class="empty">No items yet — paste a list.</p>'}
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;">
+      <button class="btn sm" onclick="openImport('${cid}')">📋 Paste list</button>
+    </div>
+  `);
+  wireTaskRows(document.getElementById("modalBox"));
+}
+
+function openAddClass(){
+  openModal(`
+    <button class="close-x" onclick="closeModal()">×</button>
+    <h3>➕ Add a class</h3>
+    <label class="fld" style="margin-bottom:10px;">Class name<input id="ncName" placeholder="e.g. Spanish 1"></label>
+    <label class="fld" style="margin-bottom:10px;">Teacher (optional)<input id="ncTeacher"></label>
+    <button class="btn ok sm" onclick="addClass()">Add class</button>
+  `);
+}
+function addClass(){
+  const name=document.getElementById("ncName").value.trim(); if(!name) return;
+  const teacher=document.getElementById("ncTeacher").value.trim();
+  const id="c"+Date_now();
+  const color=CLASS_COLORS[STATE.classes.length % CLASS_COLORS.length];
+  STATE.classes.push({id,name,teacher,color,grade:null,total:0,done:0});
+  closeModal(); render(); openImport(id);
+}
+
+/* ---------- tabs ---------- */
+function switchTab(name){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.getAttribute("data-tab")===name));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id===name));
+}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>switchTab(t.getAttribute("data-tab")));
+
+/* ---------- controls ---------- */
+document.getElementById("applySchedule").onclick=()=>{
+  STATE.settings.targetDate=document.getElementById("targetDate").value||STATE.settings.targetDate;
+  const cap=Number(document.getElementById("dailyCap").value);
+  STATE.settings.dailyCapMin= cap>0? cap : null;
+  render();
+};
+document.getElementById("targetDate").onchange=()=>{ STATE.settings.targetDate=document.getElementById("targetDate").value; render(); };
+document.getElementById("rebalance").onclick=()=>{ STATE.tasks.forEach(t=>t.pinnedDate=null); render(); };
+document.getElementById("addClassBtn").onclick=openAddClass;
+document.getElementById("importBtn").onclick=()=>openImport(STATE.classes[0]?STATE.classes[0].id:null);
+
+document.getElementById("wkPrev").onclick=()=>{ weekStart=addDays(weekStart,-7); renderWeek(); };
+document.getElementById("wkNext").onclick=()=>{ weekStart=addDays(weekStart,7); renderWeek(); };
+document.getElementById("wkToday").onclick=()=>{ initWeek(); renderWeek(); };
+document.getElementById("moPrev").onclick=()=>{ const d=parseD(monthCursor); monthCursor=fmt(new Date(d.getFullYear(),d.getMonth()-1,1)); renderMonth(); };
+document.getElementById("moNext").onclick=()=>{ const d=parseD(monthCursor); monthCursor=fmt(new Date(d.getFullYear(),d.getMonth()+1,1)); renderMonth(); };
+
+document.getElementById("exportBtn").onclick=()=>{
+  const blob=new Blob([JSON.stringify(STATE,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="study-planner-backup-"+todayStr()+".json"; a.click();
+};
+document.getElementById("importFileBtn").onclick=()=>document.getElementById("importFile").click();
+document.getElementById("importFile").onchange=(e)=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ STATE=migrate(JSON.parse(r.result)); save(); initWeek(); initMonth(); render(); alert("Backup loaded ✅"); }catch(err){ alert("Couldn't read that file."); } };
+  r.readAsText(f);
+};
+document.getElementById("resetBtn").onclick=()=>{
+  if(confirm("This erases ALL classes and assignments for the WHOLE family (on every device). This can't be undone. Are you sure?")){
+    STATE=defaultState(); initWeek(); initMonth(); render();
+  }
+};
+
+/* ---------- util ---------- */
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+/* ---------- Firebase cloud sync ---------- */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyB0UT-I_HlqSNO3HUvUCfR7v1mHT1PzJvU",
+  authDomain: "study-planner-88f40.firebaseapp.com",
+  projectId: "study-planner-88f40",
+  storageBucket: "study-planner-88f40.firebasestorage.app",
+  messagingSenderId: "41282357718",
+  appId: "1:41282357718:web:073d863ec529723d753c77"
+};
+let fbAuth=null, fbDoc=null, cloudReady=false, applyingRemote=false, pushTimer=null, unsub=null;
+
+function setSync(on,text){
+  const d=document.getElementById("syncDot"), t=document.getElementById("syncText");
+  if(d) d.classList.toggle("off",!on);
+  if(t) t.textContent=text;
+}
+
+function initFirebase(){
+  if(typeof firebase==="undefined" || !firebase.initializeApp){
+    document.getElementById("gateMsg").textContent="Couldn't load the sync service. Check your internet connection and refresh.";
+    return;
+  }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  fbAuth=firebase.auth();
+  fbDoc=firebase.firestore().collection("families").doc("planner");
+  fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
+  fbAuth.onAuthStateChanged(u=>{ u ? onLogin(u) : showLogin(); });
+}
+
+function showLogin(){
+  document.body.classList.remove("authed");
+  cloudReady=false; if(unsub){ unsub(); unsub=null; }
+  const g=document.getElementById("gate"); g.style.display="flex";
+  document.getElementById("gateMsg").textContent="Sign in to your family planner";
+  document.getElementById("loginForm").style.display="block";
+}
+
+function onLogin(user){
+  document.body.classList.add("authed");
+  document.getElementById("gate").style.display="none";
+  setSync(true,"Syncing…");
+  render();
+  const info=document.getElementById("acctInfo");
+  if(info) info.textContent="Signed in as "+(user.email||"family")+". Everyone in the family uses this same login on any device.";
+  if(!unsub){
+    unsub=fbDoc.onSnapshot(snap=>{
+      if(snap.metadata.hasPendingWrites) return;          // ignore our own optimistic write echo
+      if(snap.exists && snap.data() && snap.data().state){
+        const remote=snap.data().state;
+        if(JSON.stringify(remote)!==JSON.stringify(STATE)) applyRemote(remote);
+      } else {
+        pushCloud();                                        // first run: create the shared doc
+      }
+      cloudReady=true; setSync(true,"Synced");
+    }, err=>{ console.warn("sync error",err); setSync(false,"Offline"); });
+  }
+}
+
+function applyRemote(remote){
+  applyingRemote=true;
+  STATE=migrate(remote); saveLocal(); render();
+  applyingRemote=false;
+}
+function scheduleCloudPush(){ setSync(true,"Saving…"); clearTimeout(pushTimer); pushTimer=setTimeout(pushCloud,700); }
+function pushCloud(){
+  if(!fbDoc || !fbAuth || !fbAuth.currentUser) return;
+  fbDoc.set({ state:STATE, updatedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedBy:fbAuth.currentUser.email||"" })
+    .then(()=>setSync(true,"Synced"))
+    .catch(e=>{ console.warn("save failed",e); setSync(false,"Offline"); });
+}
+
+function doLogin(){
+  const email=document.getElementById("loginEmail").value.trim();
+  const pass=document.getElementById("loginPass").value;
+  const err=document.getElementById("loginErr"); err.textContent="";
+  const btn=document.getElementById("loginBtn"); btn.disabled=true; btn.textContent="Logging in…";
+  fbAuth.signInWithEmailAndPassword(email,pass)
+    .catch(e=>{ const c=(e.code||"")+" "+(e.message||""); err.textContent=/password|credential|user-not-found|invalid-email|invalid-login/i.test(c) ? "That email or password didn't match. Try again." : ("Couldn't log in: "+(e.message||e.code)); })
+    .finally(()=>{ btn.disabled=false; btn.textContent="Log in"; });
+}
+
+/* ---------- boot ---------- */
+load(); initWeek(); initMonth();
+if(document.getElementById("logoutBtn")) document.getElementById("logoutBtn").onclick=()=>{ if(fbAuth) fbAuth.signOut(); };
+document.getElementById("loginBtn").onclick=doLogin;
+document.getElementById("loginPass").addEventListener("keydown",e=>{ if(e.key==="Enter") doLogin(); });
+document.getElementById("loginEmail").addEventListener("keydown",e=>{ if(e.key==="Enter") document.getElementById("loginPass").focus(); });
+applyTheme();
+initFirebase();
 </script>
 </body>
 </html>

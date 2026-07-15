@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lack of Class — FC 26 Playbook v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --accent: #f59e0b;
+    --accent2: #ef4444;
+    --green: #10b981;
+    --blue: #3b82f6;
+    --purple: #a78bfa;
+    --text: #e5e7eb;
+    --muted: #6b7280;
+    --jordan: #a78bfa;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Barlow', sans-serif; min-height: 100vh; overflow-x: hidden; }
+
+  .header { text-align: center; padding: 36px 20px 20px; position: relative; }
+  .header::after { content:''; position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:120px; height:3px; background:var(--accent); }
+  .club-name { font-family:'Bebas Neue',sans-serif; font-size:3.2rem; letter-spacing:6px; color:#fff; text-transform:uppercase; }
+  .club-sub { font-family:'Barlow Condensed',sans-serif; font-size:1rem; color:var(--accent); letter-spacing:4px; text-transform:uppercase; margin-top:4px; }
+  .version-badge { display:inline-block; font-family:'Barlow Condensed',sans-serif; font-size:0.7rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; background:var(--jordan); color:#000; padding:3px 12px; border-radius:3px; margin-top:10px; }
+
+  .tabs { display:flex; justify-content:center; gap:4px; margin:28px auto 0; max-width:800px; padding:0 16px; flex-wrap:wrap; }
+  .tab { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:0.85rem; letter-spacing:2px; text-transform:uppercase; padding:10px 18px; border:none; background:var(--surface); color:var(--muted); cursor:pointer; transition:all 0.2s; border-radius:4px; }
+  .tab:hover { color:var(--text); background:var(--surface2); }
+  .tab.active { background:var(--accent); color:#000; }
+
+  .panel { display:none; }
+  .panel.active { display:block; }
+
+  /* Pitch & formation */
+  .formation-section { max-width:900px; margin:30px auto; padding:0 16px; }
+  .formation-label { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; letter-spacing:3px; color:var(--accent); text-align:center; margin-bottom:4px; }
+  .formation-desc { text-align:center; color:var(--muted); font-size:0.88rem; margin-bottom:20px; max-width:640px; margin-left:auto; margin-right:auto; line-height:1.6; }
+  .pcb { display:inline-block; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:0.7rem; letter-spacing:1px; text-transform:uppercase; padding:3px 10px; border-radius:3px; margin-bottom:12px; }
+  .pcb-3 { background:rgba(239,68,68,0.15); color:var(--accent2); }
+  .pcb-4 { background:rgba(16,185,129,0.15); color:var(--green); }
+  .pcb-5 { background:rgba(59,130,246,0.15); color:var(--blue); }
+  .pcb-6 { background:rgba(245,158,11,0.15); color:var(--accent); }
+  .pcb-7 { background:rgba(167,139,250,0.15); color:var(--jordan); }
+
+  .pitch { position:relative; width:100%; max-width:500px; aspect-ratio:0.72; margin:0 auto; background:linear-gradient(180deg,#14572a 0%,#1a6b35 30%,#14572a 50%,#1a6b35 70%,#14572a 100%); border:2px solid rgba(255,255,255,0.15); border-radius:8px; overflow:hidden; }
+  .pitch::before { content:''; position:absolute; top:49.5%; left:10%; right:10%; height:1px; background:rgba(255,255,255,0.25); }
+  .pitch-circle { position:absolute; top:50%; left:50%; width:80px; height:80px; border:1px solid rgba(255,255,255,0.25); border-radius:50%; transform:translate(-50%,-50%); }
+  .pitch-box-top { position:absolute; top:0; left:25%; right:25%; height:14%; border:1px solid rgba(255,255,255,0.25); border-top:none; }
+  .pitch-box-bot { position:absolute; bottom:0; left:25%; right:25%; height:14%; border:1px solid rgba(255,255,255,0.25); border-bottom:none; }
+
+  .player-dot { position:absolute; transform:translate(-50%,-50%); text-align:center; z-index:2; }
+  .player-dot .dot { width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:0.78rem; letter-spacing:1px; margin:0 auto; box-shadow:0 2px 10px rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.3); }
+  .dot.human { background:var(--accent); color:#000; border-color:var(--accent); }
+  .dot.jordan { background:var(--jordan); color:#000; border-color:var(--jordan); box-shadow:0 0 16px rgba(167,139,250,0.4); }
+  .dot.ai { background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.5); border-color:rgba(255,255,255,0.15); }
+  .dot.opt { background:rgba(245,158,11,0.35); color:rgba(255,255,255,0.7); border-color:rgba(245,158,11,0.4); width:36px; height:36px; font-size:0.65rem; }
+  .player-dot .name { font-family:'Barlow Condensed',sans-serif; font-size:0.7rem; font-weight:700; color:#fff; margin-top:3px; text-transform:uppercase; letter-spacing:1px; text-shadow:0 1px 4px rgba(0,0,0,0.8); white-space:nowrap; }
+  .player-dot .name.jn { color:var(--jordan); }
+  .player-dot .pos { font-size:0.55rem; color:rgba(255,255,255,0.5); letter-spacing:1px; }
+  .ai-label { color:rgba(255,255,255,0.35) !important; }
+  .pitch-note { position:absolute; bottom:4%; left:50%; transform:translateX(-50%); text-align:center; z-index:3; font-size:0.58rem; color:rgba(255,255,255,0.3); font-family:'Barlow Condensed',sans-serif; letter-spacing:1px; }
+
+  /* Formation tabs */
+  .fm-tabs { display:flex; justify-content:center; gap:6px; margin-bottom:20px; flex-wrap:wrap; }
+  .fm-tab { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:0.78rem; letter-spacing:1px; padding:6px 14px; border:1px solid rgba(255,255,255,0.1); background:transparent; color:var(--muted); cursor:pointer; border-radius:4px; transition:all 0.2s; }
+  .fm-tab:hover { border-color:var(--accent); color:var(--text); }
+  .fm-tab.active { background:var(--accent); color:#000; border-color:var(--accent); }
+  .fm-view { display:none; }
+  .fm-view.active { display:block; }
+
+  /* Roster */
+  .roster-section { max-width:900px; margin:30px auto; padding:0 16px; }
+  .section-title { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; letter-spacing:3px; color:#fff; margin-bottom:16px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.08); }
+  .roster-card { background:var(--surface); border-radius:8px; overflow:hidden; margin-bottom:10px; border-left:3px solid var(--accent); }
+  .roster-card.star { border-left-color:var(--jordan); }
+  .roster-card.t2 { border-left-color:var(--blue); }
+  .roster-card.t3 { border-left-color:var(--muted); }
+  .rc-header { display:flex; align-items:center; padding:14px 18px; gap:14px; cursor:pointer; transition:background 0.2s; }
+  .rc-header:hover { background:var(--surface2); }
+  .rc-pos { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; width:42px; text-align:center; letter-spacing:1px; color:var(--accent); }
+  .roster-card.star .rc-pos { color:var(--jordan); }
+  .roster-card.t2 .rc-pos { color:var(--blue); }
+  .roster-card.t3 .rc-pos { color:var(--muted); }
+  .rc-name { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:1.1rem; letter-spacing:1px; text-transform:uppercase; flex:1; }
+  .rc-star { font-size:0.65rem; color:var(--jordan); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-left:6px; }
+  .rc-freq { font-size:0.7rem; color:var(--muted); font-family:'Barlow Condensed',sans-serif; letter-spacing:1px; margin-right:8px; }
+  .rc-arch { font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+  .rc-body { display:none; padding:0 18px 14px 74px; font-size:0.85rem; color:var(--muted); line-height:1.6; }
+  .rc-body.open { display:block; }
+  .tag { display:inline-block; font-size:0.65rem; font-weight:600; text-transform:uppercase; letter-spacing:1px; padding:2px 8px; border-radius:3px; margin-right:4px; margin-bottom:4px; }
+  .tag-green { background:rgba(16,185,129,0.15); color:var(--green); }
+  .tag-blue { background:rgba(59,130,246,0.15); color:var(--blue); }
+  .tag-red { background:rgba(239,68,68,0.15); color:var(--accent2); }
+  .tag-amber { background:rgba(245,158,11,0.15); color:var(--accent); }
+  .tag-purple { background:rgba(167,139,250,0.15); color:var(--jordan); }
+
+  /* Strategy */
+  .strat-section { max-width:900px; margin:30px auto; padding:0 16px 60px; }
+  .strat-block { background:var(--surface); border-radius:8px; padding:20px 24px; margin-bottom:14px; }
+  .strat-block h3 { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:1rem; text-transform:uppercase; letter-spacing:2px; color:var(--accent); margin-bottom:10px; }
+  .strat-block p { font-size:0.9rem; line-height:1.7; color:var(--text); }
+  .strat-block p + p { margin-top:10px; }
+  .highlight { color:var(--accent); font-weight:600; }
+  .hl-j { color:var(--jordan); font-weight:600; }
+
+  .scenario-grid { display:grid; grid-template-columns:1fr; gap:10px; margin-top:14px; }
+  .scenario { background:var(--surface2); border-radius:6px; padding:14px 18px; border-left:3px solid var(--muted); }
+  .scenario.rec { border-left-color:var(--green); }
+  .scenario-label { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:0.8rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--green); margin-bottom:6px; }
+  .scenario p { font-size:0.85rem; line-height:1.6; color:var(--text); }
+
+  /* Availability matrix */
+  .avail-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; margin-top:14px; }
+  .avail-card { background:var(--surface2); border-radius:6px; padding:12px 14px; text-align:center; }
+  .avail-name { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:0.9rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+  .avail-freq { font-size:0.75rem; color:var(--muted); }
+  .avail-dots { margin-top:6px; display:flex; justify-content:center; gap:4px; }
+  .avail-dot { width:10px; height:10px; border-radius:50%; }
+  .avail-dot.on { background:var(--green); }
+  .avail-dot.off { background:rgba(255,255,255,0.08); }
+  .avail-dot.maybe { background:rgba(245,158,11,0.4); }
+
+  @media (max-width:600px) {
+    .club-name { font-size:2.2rem; letter-spacing:3px; }
+    .tabs { gap:3px; }
+    .tab { font-size:0.72rem; padding:8px 12px; }
+    .pitch { max-width:340px; }
+    .player-dot .dot { width:34px; height:34px; font-size:0.68rem; }
+    .player-dot .name { font-size:0.6rem; }
+    .rc-body { padding-left:18px; }
+    .avail-grid { grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="club-name">Lack of Class</div>
+  <div class="club-sub">EA FC 26 Pro Clubs Playbook</div>
+  <div class="version-badge">v3 — 3-to-5 Optimized &bull; Jordan-Centric</div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchPanel('formations')">Formations</button>
+  <button class="tab" onclick="switchPanel('roster')">Roster</button>
+  <button class="tab" onclick="switchPanel('strategy')">Strategy</button>
+  <button class="tab" onclick="switchPanel('availability')">Availability</button>
+</div>
+
+<!-- ============ FORMATIONS ============ -->
+<div id="formations" class="panel active">
+  <div class="formation-section">
+    <div class="fm-tabs">
+      <button class="fm-tab active" onclick="switchFm('fm3')">3 Players</button>
+      <button class="fm-tab" onclick="switchFm('fm4')">4 Players</button>
+      <button class="fm-tab" onclick="switchFm('fm5')">5 Players</button>
+      <button class="fm-tab" onclick="switchFm('fm6')">6-7 Players</button>
+      <button class="fm-tab" onclick="switchFm('fmlock')">Lockdown</button>
+    </div>
+
+    <!-- 3 PLAYERS -->
+    <div id="fm3" class="fm-view active">
+      <div style="text-align:center"><span class="pcb pcb-3">3 Players — Skeleton Crew</span></div>
+      <div class="formation-label">4-2-3-1 Wide (AI Heavy)</div>
+      <div class="formation-desc">Just three humans tonight. Go spine: Jordan at CM (box-to-box), Dylan at CAM, and your third player (usually Mike or Charlie) up top. AI fills everything else. The 4-2-3-1 keeps the AI organized — they handle defense, wings, and the second CDM. Your three humans control the central channel where games are won.</div>
+      <div class="pitch">
+        <div class="pitch-circle"></div><div class="pitch-box-top"></div><div class="pitch-box-bot"></div>
+        <div class="player-dot" style="top:12%;left:50%"><div class="dot human">ST</div><div class="name">Mike / Charlie</div><div class="pos">Whoever's on</div></div>
+        <div class="player-dot" style="top:26%;left:16%"><div class="dot ai">LW</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:30%;left:50%"><div class="dot human">CAM</div><div class="name">Dylan</div><div class="pos">Creator</div></div>
+        <div class="player-dot" style="top:26%;left:84%"><div class="dot ai">RW</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:48%;left:36%"><div class="dot ai">CDM</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:48%;left:64%"><div class="dot jordan">CM</div><div class="name jn">Jordan ★</div><div class="pos">Maestro — B2B</div></div>
+        <div class="player-dot" style="top:74%;left:16%"><div class="dot ai">LB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:74%;left:38%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:74%;left:62%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:74%;left:84%"><div class="dot ai">RB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:91%;left:50%"><div class="dot ai">GK</div><div class="name ai-label">AI</div></div>
+        <div class="pitch-note">AI FILLS 8 POSITIONS — INVEST IN FACILITIES</div>
+      </div>
+    </div>
+
+    <!-- 4 PLAYERS — THE CORE -->
+    <div id="fm4" class="fm-view">
+      <div style="text-align:center"><span class="pcb pcb-4">4 Players — The Core Four ★</span></div>
+      <div class="formation-label">4-1-2-1-2 Narrow</div>
+      <div class="formation-desc">This is your most common lineup: Charlie, Jordan, Dylan, Mike. The narrow diamond maximizes these four players. Mike and Charlie as a striker pair, Dylan at CAM threading balls, Jordan at CM controlling tempo. AI plays CDM, back four, and GK. Everyone's within one pass of Jordan.</div>
+      <div class="pitch">
+        <div class="pitch-circle"></div><div class="pitch-box-top"></div><div class="pitch-box-bot"></div>
+        <div class="player-dot" style="top:12%;left:38%"><div class="dot human">LST</div><div class="name">Mike</div><div class="pos">Magician</div></div>
+        <div class="player-dot" style="top:12%;left:62%"><div class="dot human">RST</div><div class="name">Charlie</div><div class="pos">Target / Finisher</div></div>
+        <div class="player-dot" style="top:28%;left:50%"><div class="dot human">CAM</div><div class="name">Dylan</div><div class="pos">Creator</div></div>
+        <div class="player-dot" style="top:44%;left:50%"><div class="dot jordan">CM</div><div class="name jn">Jordan ★</div><div class="pos">Maestro — B2B</div></div>
+        <div class="player-dot" style="top:58%;left:50%"><div class="dot ai">CDM</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:74%;left:16%"><div class="dot ai">LB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:74%;left:38%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:74%;left:62%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:74%;left:84%"><div class="dot ai">RB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:91%;left:50%"><div class="dot ai">GK</div><div class="name ai-label">AI</div></div>
+        <div class="pitch-note">CORE FOUR — YOUR MOST COMMON LINEUP</div>
+      </div>
+    </div>
+
+    <!-- 5 PLAYERS -->
+    <div id="fm5" class="fm-view">
+      <div style="text-align:center"><span class="pcb pcb-5">5 Players — Core + 1</span></div>
+      <div class="formation-label">4-1-2-1-2 Narrow</div>
+      <div class="formation-desc">Same diamond as the Core Four, but now your 5th (usually Jake, Max, or Brian) fills the CDM spot instead of AI. If Brian is the 5th, consider shifting to a 4-2-3-1 with Brian on a wing — but only if you're comfortable losing the two-striker setup. Jake or Max at CDM is the cleanest fit.</div>
+      <div class="pitch">
+        <div class="pitch-circle"></div><div class="pitch-box-top"></div><div class="pitch-box-bot"></div>
+        <div class="player-dot" style="top:12%;left:38%"><div class="dot human">LST</div><div class="name">Mike</div><div class="pos">Magician</div></div>
+        <div class="player-dot" style="top:12%;left:62%"><div class="dot human">RST</div><div class="name">Charlie</div><div class="pos">Target / Finisher</div></div>
+        <div class="player-dot" style="top:28%;left:50%"><div class="dot human">CAM</div><div class="name">Dylan</div><div class="pos">Creator</div></div>
+        <div class="player-dot" style="top:44%;left:50%"><div class="dot jordan">CM</div><div class="name jn">Jordan ★</div><div class="pos">Maestro — B2B</div></div>
+        <div class="player-dot" style="top:58%;left:50%"><div class="dot human">CDM</div><div class="name">Jake / Max</div><div class="pos">Recycler</div></div>
+        <div class="player-dot" style="top:74%;left:16%"><div class="dot ai">LB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:74%;left:38%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:74%;left:62%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:74%;left:84%"><div class="dot ai">RB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:91%;left:50%"><div class="dot ai">GK</div><div class="name ai-label">AI</div></div>
+        <div class="pitch-note">JAKE / MAX / BRIAN FILLS THE 5TH SPOT</div>
+      </div>
+    </div>
+
+    <!-- 6-7 PLAYERS -->
+    <div id="fm6" class="fm-view">
+      <div style="text-align:center"><span class="pcb pcb-6">6-7 Players — Rare Full Nights</span></div>
+      <div class="formation-label">4-2-3-1 Wide</div>
+      <div class="formation-desc">When you have the luxury of 6-7, open up to the 4-2-3-1. Jake + Jordan as the double pivot (Jake holds, Jordan roams). Dylan at CAM. Mike LW, Brian or Charlie on the right, Charlie or Brian up top. Max/Adam slot into whichever spot remains.</div>
+      <div class="pitch">
+        <div class="pitch-circle"></div><div class="pitch-box-top"></div><div class="pitch-box-bot"></div>
+        <div class="player-dot" style="top:12%;left:50%"><div class="dot human">ST</div><div class="name">Charlie</div><div class="pos">Target / Finisher</div></div>
+        <div class="player-dot" style="top:26%;left:16%"><div class="dot human">LW</div><div class="name">Mike</div><div class="pos">Magician</div></div>
+        <div class="player-dot" style="top:30%;left:50%"><div class="dot human">CAM</div><div class="name">Dylan</div><div class="pos">Creator</div></div>
+        <div class="player-dot" style="top:26%;left:84%"><div class="dot human">RW</div><div class="name">Brian</div><div class="pos">Spark</div></div>
+        <div class="player-dot" style="top:50%;left:36%"><div class="dot human">LDM</div><div class="name">Jake</div><div class="pos">Recycler — Holding</div></div>
+        <div class="player-dot" style="top:48%;left:64%"><div class="dot jordan">RCM</div><div class="name jn">Jordan ★</div><div class="pos">Maestro — B2B</div></div>
+        <div class="player-dot" style="top:38%;left:76%"><div class="dot opt">+7</div><div class="name" style="color:var(--muted)">Max / Adam</div><div class="pos">RW or CDM</div></div>
+        <div class="player-dot" style="top:74%;left:16%"><div class="dot ai">LB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:74%;left:38%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:74%;left:62%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:74%;left:84%"><div class="dot ai">RB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:91%;left:50%"><div class="dot ai">GK</div><div class="name ai-label">AI</div></div>
+      </div>
+    </div>
+
+    <!-- LOCKDOWN -->
+    <div id="fmlock" class="fm-view">
+      <div style="text-align:center"><span class="pcb pcb-3">Any Count — Protect a Lead</span></div>
+      <div class="formation-label">Drop Dylan Deep</div>
+      <div class="formation-desc">When protecting a lead with the Core Four: Dylan drops from CAM to CM alongside Jordan, creating a midfield two in front of the AI CDM. Mike and Charlie stay forward as the counter-attack outlets. Jordan switches to Engine archetype behavior — win the ball, keep it simple, let the clock run.</div>
+      <div class="pitch">
+        <div class="pitch-circle"></div><div class="pitch-box-top"></div><div class="pitch-box-bot"></div>
+        <div class="player-dot" style="top:14%;left:38%"><div class="dot human">LST</div><div class="name">Mike</div><div class="pos">Counter Threat</div></div>
+        <div class="player-dot" style="top:14%;left:62%"><div class="dot human">RST</div><div class="name">Charlie</div><div class="pos">Hold-up / Outlet</div></div>
+        <div class="player-dot" style="top:38%;left:40%"><div class="dot human">LCM</div><div class="name">Dylan</div><div class="pos">Creator — Deep</div></div>
+        <div class="player-dot" style="top:38%;left:60%"><div class="dot jordan">RCM</div><div class="name jn">Jordan ★</div><div class="pos">Engine — Lockdown</div></div>
+        <div class="player-dot" style="top:54%;left:50%"><div class="dot ai">CDM</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:74%;left:16%"><div class="dot ai">LB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:74%;left:38%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:74%;left:62%"><div class="dot ai">CB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:74%;left:84%"><div class="dot ai">RB</div><div class="name ai-label">AI</div></div>
+        <div class="player-dot" style="top:91%;left:50%"><div class="dot ai">GK</div><div class="name ai-label">AI</div></div>
+        <div class="pitch-note">DYLAN DROPS — MIDFIELD TWO PROTECTS THE LEAD</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ ROSTER ============ -->
+<div id="roster" class="panel">
+  <div class="roster-section">
+    <div class="section-title">Tier 1 — Core Four (3x / week)</div>
+
+    <div class="roster-card star" onclick="toggleCard(this)">
+      <div class="rc-header">
+        <div class="rc-pos">CM</div>
+        <div class="rc-name">Jordan <span class="rc-star">★ Franchise</span></div>
+        <div class="rc-freq">3x/wk</div>
+        <div class="rc-arch">Maestro / Engine</div>
+      </div>
+      <div class="rc-body">
+        <span class="tag tag-purple">Always Starts</span>
+        <span class="tag tag-purple">System Built Around Him</span>
+        <p style="margin-top:8px"><strong>Maestro</strong> primary — Pinged+, Long Ball+, Tiki Taka+ let him dictate tempo, spray switches, and retain possession. <strong>Engine</strong> secondary for defensive-heavy games or lockdown situations. Always box-to-box or deep-lying playmaker role, never holding. Jordan covers the ground; Jake (or AI) sits.</p>
+      </div>
+    </div>
+
+    <div class="roster-card" onclick="toggleCard(this)">
+      <div class="rc-header">
+        <div class="rc-pos">CAM</div>
+        <div class="rc-name">Dylan</div>
+        <div class="rc-freq">3x/wk</div>
+        <div class="rc-arch">Creator</div>
+      </div>
+      <div class="rc-body">
+        <span class="tag tag-amber">Primary: CAM</span>
+        <span class="tag tag-blue">Flex: CM / CDM</span>
+        <p style="margin-top:8px">Creator with Incisive Pass and Inventive. The Dylan-Jordan vertical swap is the team's key tactical lever — no formation change needed, just a verbal call. When Dylan drops deep in lockdown mode, his passing range keeps the build-up dangerous even from the pivot. Secondary unlock: <strong>Maestro</strong> for the deeper role.</p>
+      </div>
+    </div>
+
+    <div class="roster-card" onclick="toggleCard(this)">
+      <div class="rc-header">
+        <div class="rc-pos">LW/ST</div>
+        <div class="rc-name">Mike</div>
+        <div class="rc-freq">3x/wk</div>
+        <div class="rc-arch">Magician</div>
+      </div>
+      <div class="rc-body">
+        <span class="tag tag-red">Shoot First</span>
+        <span class="tag tag-amber">LW in wide sets / LST in narrow</span>
+        <p style="margin-top:8px">Magician with Finesse Shot+ is devastating from the left. In the Core Four's 4-1-2-1-2, Mike plays LST; in wider formations, he's LW as an Inside Forward. Jordan's Pinged+ switches from deep find Mike in space on the left. The Mike-Jordan connection is the team's most dangerous attacking combo.</p>
+      </div>
+    </div>
+
+    <div class="roster-card" onclick="toggleCard(this)">
+      <div class="rc-header">
+        <div class="rc-pos">ST/RW</div>
+        <div class="rc-name">Charlie</div>
+        <div class="rc-freq">3x/wk</div>
+        <div class="rc-arch">Target / Finisher</div>
+      </div>
+      <div class="rc-body">
+        <span class="tag tag-red">Versatile Striker</span>
+        <span class="tag tag-blue">Flex: RW</span>
+        <p style="margin-top:8px">Target (Precision Header+, Power Shot+) for hold-up play and aerial threat; Finisher (Low Driven Shot+) for clinical finishing. In the Core Four narrow diamond, Charlie plays RST. In wider sets, he's the lone striker or rotates to RW where his finishing makes him a cut-inside threat. Charlie is the primary outlet for Jordan's forward passes.</p>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:24px">Tier 2 — Regular Rotation (2x / week)</div>
+
+    <div class="roster-card t2" onclick="toggleCard(this)">
+      <div class="rc-header">
+        <div class="rc-pos">CDM</div>
+        <div class="rc-name">Jake</div>
+        <div class="rc-freq">2x/wk</div>
+        <div class="rc-arch">Recycler</div>
+      </div>
+      <div class="rc-body">
+        <span class="tag tag-green">Anchor</span>
+        <span class="tag tag-amber">CDM Only</span>
+        <p style="margin-top:8px">Recycler with Press Proven+ and Intercept+. Jake is the ideal 5th man — he replaces AI at CDM and immediately upgrades the defensive foundation. The Jake-Jordan pivot (Jake sits, Jordan roams) is the best midfield pairing the team has. On nights without Jake, the AI CDM is competent enough at holding, and Jordan compensates.</p>
+      </div>
+    </div>
+
+    <div class="roster-card t2" onclick="toggleCard(this)">
+      <div class="rc-header">
+        <div class="rc-pos">RW</div>
+        <div class="rc-name">Brian</div>
+        <div class="rc-freq">2x/wk</div>
+        <div class="rc-arch">Spark</div>
+      </div>
+      <div class="rc-body">
+        <span class="tag tag-green">Pace Merchant</span>
+        <span class="tag tag-blue">Flex: LW / ST / LCM</span>
+        <p style="margin-top:8px">Spark with Rapid and Trickster. Brian is the player who unlocks the 4-2-3-1 — you need a human winger to make that formation work. When Brian's on with the Core Four, you can shift from the narrow diamond to a wide shape. Secondary unlock: <strong>Engine</strong> for central play.</p>
+      </div>
+    </div>
+
+    <div class="roster-card t2" onclick="toggleCard(this)">
+      <div class="rc-header">
+        <div class="rc-pos">CDM</div>
+        <div class="rc-name">Max</div>
+        <div class="rc-freq">2x/wk</div>
+        <div class="rc-arch">Recycler / Engine</div>
+      </div>
+      <div class="rc-body">
+        <span class="tag tag-green">Two-Way Mid</span>
+        <span class="tag tag-blue">Flex: RW / RCM</span>
+        <p style="margin-top:8px">Interchangeable with Jake at CDM. <strong>Engine</strong> is the recommended primary — strongest defensive archetype overall, and gives more flexibility when rotating to RW on full nights. Max is the "Jake replacement" on nights when Jake's off and you have 5.</p>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:24px">Tier 3 — Spot Duty (~1x / week)</div>
+
+    <div class="roster-card t3" onclick="toggleCard(this)">
+      <div class="rc-header">
+        <div class="rc-pos">UTIL</div>
+        <div class="rc-name">Adam</div>
+        <div class="rc-freq">~1x/wk</div>
+        <div class="rc-arch">Engine (rec)</div>
+      </div>
+      <div class="rc-body">
+        <span class="tag tag-blue">Anywhere — CB to ST</span>
+        <p style="margin-top:8px"><strong>Engine</strong> primary — the best "plug anywhere" archetype. Three defensive PlayStyles+ work at CB and CDM; passing and stamina carry through CM. Unlock <strong>Finisher</strong> later for attacking nights. Adam fills whatever gap exists on any given night — the ultimate insurance policy.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ STRATEGY ============ -->
+<div id="strategy" class="panel">
+  <div class="strat-section">
+    <div class="section-title">Strategy — Built for 3-5</div>
+
+    <div class="strat-block">
+      <h3>Design Philosophy</h3>
+      <p>Most Pro Clubs guides assume 8-11 humans. Lack of Class typically runs 3-5. That changes everything. You can't play wide formations with AI wingers and expect creativity — AI wingers are predictable and easy to defend. Instead, the system concentrates humans through the center where they make the biggest impact, and lets AI handle the structured roles (defense, GK, CDM) where predictability is actually an asset.</p>
+      <p>The <span class="highlight">4-1-2-1-2 Narrow</span> is the foundation because it puts all four core humans (Jordan, Dylan, Mike, Charlie) within one pass of each other. No human is isolated on a wing waiting for a ball that never comes. Every touch matters, and Jordan sits right in the middle of it all.</p>
+    </div>
+
+    <div class="strat-block">
+      <h3>The Core Four Setup</h3>
+      <p>Your most common lineup is Charlie, Jordan, Dylan, and Mike. Here's how the relationships work in the narrow diamond:</p>
+      <p><span class="hl-j">Jordan (CM)</span> is the hub. He receives from the AI CDM, drives forward, and has three passing options: Dylan centrally, Mike left, Charlie right. Every attack flows through Jordan.</p>
+      <p><span class="highlight">Dylan (CAM)</span> is the final-ball specialist. He receives from Jordan and picks the right pass to Mike or Charlie. Dylan also drops to create a midfield overload when the opponent presses high.</p>
+      <p><span class="highlight">Mike (LST)</span> and <span class="highlight">Charlie (RST)</span> are the finishing duo. Mike cuts inside from the left to shoot (Finesse Shot+). Charlie holds the ball up or makes runs in behind. Together they give the defense two different problems to solve.</p>
+    </div>
+
+    <div class="strat-block">
+      <h3>When the 5th Man Arrives</h3>
+      <div class="scenario-grid">
+        <div class="scenario rec">
+          <div class="scenario-label">Jake or Max joins → CDM</div>
+          <p>Cleanest fit. They replace AI at CDM. Formation stays 4-1-2-1-2. Immediate upgrade — a human CDM reads play better than AI and the Jake-Jordan or Max-Jordan pairing is more cohesive.</p>
+        </div>
+        <div class="scenario rec">
+          <div class="scenario-label">Brian joins → Switch to 4-2-3-1 Wide</div>
+          <p>Brian needs a wing to be effective. Shift formation: Mike to LW, Brian to RW, Dylan stays CAM, Jordan drops to the pivot with AI CDM partner, Charlie lone ST. You lose the two-striker dynamic but gain width and counter-attack speed.</p>
+        </div>
+        <div class="scenario">
+          <div class="scenario-label">Adam joins → Most needed spot</div>
+          <p>Adam's Engine archetype means he can fill CDM, CM, or even CB if you want to run a human in the back. CDM is the default slot.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="strat-block">
+      <h3>The Dylan–Jordan Swap</h3>
+      <p>Your biggest tactical weapon doesn't require a formation change — just a verbal call. Two modes from the same shape:</p>
+      <p><strong>Default:</strong> <span class="hl-j">Jordan at CM</span>, Dylan at CAM. Jordan controls tempo and feeds Dylan, who threads the final ball. Best when dominating possession.</p>
+      <p><strong>Chase mode:</strong> <span class="hl-j">Jordan pushes to CAM</span>, Dylan drops to CM. Your best player is now in the most dangerous zone. Use when trailing. Jordan's finishing and dribbling can turn a game from the #10 position.</p>
+    </div>
+
+    <div class="strat-block">
+      <h3>AI Management — Critical at 3-5 Players</h3>
+      <p>With 3-5 humans, AI is filling 6-8 spots. This isn't a weakness — it's a feature, if managed correctly.</p>
+      <p><strong>AI strengths:</strong> Defending shape, positional discipline, tracking runs, standing tackles. AI CBs and FBs are solid in FC 26 when you invest in facilities.</p>
+      <p><strong>AI weaknesses:</strong> Creativity, through balls, wide play, pressing triggers. This is why you don't want AI at CAM or winger — they're wasted there.</p>
+      <p><strong>Facility investment priority:</strong> <span class="highlight">Defenders (40%) → Goalkeeper (30%) → Midfield (20%) → Attackers (10%)</span>. With 4 humans playing centrally and up front, you almost never need AI to attack. Pour everything into making the back line competent.</p>
+      <p><strong>Key tip:</strong> The AI CDM in a 4-1-2-1-2 is actually quite reliable — it sits deep, wins headers, and makes simple passes. Don't be afraid of running with AI at CDM on 4-player nights. Jordan's work rate covers the gap.</p>
+    </div>
+
+    <div class="strat-block">
+      <h3>Tactical Settings</h3>
+      <p><strong>Defensive depth:</strong> <span class="highlight">55-60</span>. Slightly lower than a full human squad because your AI defenders need a bit less space to cover. This keeps the lines compact so Jordan's pressing is effective.</p>
+      <p><strong>Build-up:</strong> <span class="highlight">Balanced</span>. Short Passing if you want to slow things down and let Jordan orchestrate. Counter if you're absorbing pressure and springing Mike/Charlie on the break.</p>
+      <p><strong>Width:</strong> <span class="highlight">Narrow</span> in the 4-1-2-1-2 (AI fullbacks provide width). Default in the 4-2-3-1 when you have human wingers.</p>
+      <p><strong>Pressing:</strong> Balanced. Don't use high press with 3-4 humans — you'll leave too many gaps. Let the AI hold shape and press as a unit.</p>
+    </div>
+
+    <div class="strat-block">
+      <h3>Archetype Unlock Priorities</h3>
+      <p><span class="hl-j">Jordan:</span> Primary <strong>Maestro</strong>. Secondary: <strong>Engine</strong> for lockdown games.</p>
+      <p><span class="highlight">Dylan:</span> Primary <strong>Creator</strong>. Secondary: <strong>Maestro</strong> for CM/CDM nights.</p>
+      <p><span class="highlight">Mike:</span> Primary <strong>Magician</strong>. No urgent secondary needed — Mike always plays the same role.</p>
+      <p><span class="highlight">Charlie:</span> Primary <strong>Target</strong> or <strong>Finisher</strong> (team preference). Secondary: the other one, for different match situations.</p>
+      <p><span class="highlight">Jake:</span> Primary <strong>Recycler</strong>. No secondary needed — Jake's role never changes.</p>
+      <p><span class="highlight">Brian:</span> Primary <strong>Spark</strong>. Secondary: <strong>Engine</strong> for LCM rotation.</p>
+      <p><span class="highlight">Max:</span> Switch to <strong>Engine</strong> if possible — strongest defensive archetype and more wing flexibility than Recycler.</p>
+      <p><span class="highlight">Adam:</span> <strong>Engine</strong> primary. Unlock <strong>Finisher</strong> later.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ AVAILABILITY ============ -->
+<div id="availability" class="panel">
+  <div class="roster-section">
+    <div class="section-title">Weekly Availability Matrix</div>
+    <p style="color:var(--muted);font-size:0.88rem;line-height:1.6;margin-bottom:20px;">Based on typical availability. Green = likely on, amber = sometimes, dark = unlikely. Plan formations around who's confirmed each night.</p>
+
+    <div class="avail-grid">
+      <div class="avail-card">
+        <div class="avail-name" style="color:var(--jordan)">Jordan ★</div>
+        <div class="avail-freq">~3 nights / week</div>
+        <div class="avail-dots"><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot off"></div><div class="avail-dot off"></div></div>
+      </div>
+      <div class="avail-card">
+        <div class="avail-name" style="color:var(--accent)">Dylan</div>
+        <div class="avail-freq">~3 nights / week</div>
+        <div class="avail-dots"><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot off"></div><div class="avail-dot off"></div></div>
+      </div>
+      <div class="avail-card">
+        <div class="avail-name" style="color:var(--accent)">Charlie</div>
+        <div class="avail-freq">~3 nights / week</div>
+        <div class="avail-dots"><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot off"></div><div class="avail-dot off"></div></div>
+      </div>
+      <div class="avail-card">
+        <div class="avail-name" style="color:var(--accent)">Mike</div>
+        <div class="avail-freq">~3 nights / week</div>
+        <div class="avail-dots"><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot off"></div><div class="avail-dot off"></div></div>
+      </div>
+      <div class="avail-card">
+        <div class="avail-name" style="color:var(--blue)">Jake</div>
+        <div class="avail-freq">~2 nights / week</div>
+        <div class="avail-dots"><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot off"></div><div class="avail-dot off"></div><div class="avail-dot off"></div></div>
+      </div>
+      <div class="avail-card">
+        <div class="avail-name" style="color:var(--blue)">Brian</div>
+        <div class="avail-freq">~2 nights / week</div>
+        <div class="avail-dots"><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot off"></div><div class="avail-dot off"></div><div class="avail-dot off"></div></div>
+      </div>
+      <div class="avail-card">
+        <div class="avail-name" style="color:var(--blue)">Max</div>
+        <div class="avail-freq">~2 nights / week</div>
+        <div class="avail-dots"><div class="avail-dot on"></div><div class="avail-dot on"></div><div class="avail-dot off"></div><div class="avail-dot off"></div><div class="avail-dot off"></div></div>
+      </div>
+      <div class="avail-card">
+        <div class="avail-name" style="color:var(--muted)">Adam</div>
+        <div class="avail-freq">~1 night / week</div>
+        <div class="avail-dots"><div class="avail-dot maybe"></div><div class="avail-dot off"></div><div class="avail-dot off"></div><div class="avail-dot off"></div><div class="avail-dot off"></div></div>
+      </div>
+    </div>
+
+    <div class="strat-block" style="margin-top:24px">
+      <h3>Most Common Lineups</h3>
+      <div class="scenario-grid">
+        <div class="scenario rec">
+          <div class="scenario-label">Most Frequent — Core Four (4 Players)</div>
+          <p><strong>Jordan CM • Dylan CAM • Mike LST • Charlie RST</strong><br>Formation: 4-1-2-1-2 Narrow. AI fills CDM, defense, and GK. This is your bread and butter — practice this the most.</p>
+        </div>
+        <div class="scenario rec">
+          <div class="scenario-label">Common — Core Four + Jake or Max (5 Players)</div>
+          <p><strong>Jake/Max CDM • Jordan CM • Dylan CAM • Mike LST • Charlie RST</strong><br>Formation: 4-1-2-1-2 Narrow. Same shape, but with a human anchor behind Jordan. Immediate upgrade to defensive solidity.</p>
+        </div>
+        <div class="scenario rec">
+          <div class="scenario-label">Common — Core Four + Brian (5 Players)</div>
+          <p><strong>Jake/AI CDM • Jordan CM • Dylan CAM • Mike LW • Brian RW • Charlie ST</strong><br>Formation: 4-2-3-1 Wide. Brian unlocks the wings. Jordan drops into the pivot. Different feel, more width.</p>
+        </div>
+        <div class="scenario">
+          <div class="scenario-label">Skeleton — 3 Players</div>
+          <p><strong>Jordan CM • Dylan CAM • Mike or Charlie ST</strong><br>Formation: 4-2-3-1 (AI heavy). Three humans down the spine. AI handles everything else. Invest in facilities.</p>
+        </div>
+        <div class="scenario">
+          <div class="scenario-label">Big Night — 6-7 Players</div>
+          <p><strong>Jake CDM • Jordan CM(B2B) • Dylan CAM • Mike LW • Brian RW • Charlie ST • Max/Adam flex</strong><br>Formation: 4-2-3-1 Wide. Your strongest possible lineup. Enjoy it when it happens.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="strat-block">
+      <h3>Decision Tree — Who Shows Up?</h3>
+      <p>When you're in the lobby, run through this:</p>
+      <p><strong>1.</strong> Core Four all on? → <span class="highlight">4-1-2-1-2 Narrow</span>. Done.</p>
+      <p><strong>2.</strong> + Jake or Max? → Same formation, they take CDM.</p>
+      <p><strong>3.</strong> + Brian (no Jake/Max)? → <span class="highlight">Switch to 4-2-3-1 Wide</span>. Brian needs a wing.</p>
+      <p><strong>4.</strong> + Both Brian AND Jake/Max? → <span class="highlight">4-2-3-1 Wide</span> with Jake CDM, Jordan B2B, Brian RW.</p>
+      <p><strong>5.</strong> Only 3 tonight? → <span class="highlight">4-2-3-1</span>, go down the spine. Let AI handle structure.</p>
+      <p><strong>6.</strong> Missing one Core Four member? → Whoever's on slides into the vacated role. Jordan is the one constant who never moves from CM.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+function switchFm(id) {
+  document.querySelectorAll('.fm-view').forEach(f => f.classList.remove('active'));
+  document.querySelectorAll('.fm-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+function toggleCard(el) {
+  el.querySelector('.rc-body').classList.toggle('open');
+}
+</script>
+</body>
+</html>
