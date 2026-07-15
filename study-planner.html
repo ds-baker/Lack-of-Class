@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Study Planner</title>
+<style>
+  :root{
+    --bg1:#fef3ff; --bg2:#e0f2ff; --bg3:#fff7e6;
+    --ink:#2b2b3a; --muted:#7b7b91; --line:#ece6f5;
+    --card:#ffffff; --shadow:0 6px 20px rgba(80,60,120,0.10);
+    --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444;
+    --radius:18px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    font-family:'Trebuchet MS','Segoe UI',system-ui,-apple-system,sans-serif;
+    color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2) 55%,var(--bg3));
+    background-attachment:fixed;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1150px;margin:0 auto;padding:18px 16px 80px;}
+
+  /* Header */
+  header.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px;}
+  .logo{
+    width:48px;height:48px;border-radius:14px;flex:none;
+    background:linear-gradient(135deg,#ff6b9d,#9b5de5);
+    display:flex;align-items:center;justify-content:center;font-size:1.6rem;
+    box-shadow:var(--shadow);
+  }
+  .title-block h1{font-size:1.55rem;letter-spacing:.3px;}
+  .title-block p{color:var(--muted);font-size:.9rem;margin-top:2px;}
+  .header-spacer{flex:1;}
+  .save-note{font-size:.72rem;color:var(--muted);}
+
+  /* Nav */
+  nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0 20px;}
+  .tab{
+    border:none;cursor:pointer;font:inherit;font-weight:700;font-size:.9rem;
+    padding:10px 16px;border-radius:999px;background:#fff;color:var(--muted);
+    box-shadow:var(--shadow);transition:transform .12s,color .12s;
+  }
+  .tab:hover{transform:translateY(-1px);color:var(--ink);}
+  .tab.active{background:linear-gradient(135deg,#ff6b9d,#9b5de5);color:#fff;}
+
+  .panel{display:none;animation:fade .25s ease;}
+  .panel.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  /* Cards */
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;}
+  .grid{display:grid;gap:14px;}
+  .cols-auto{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));}
+
+  /* Class tiles */
+  .class-tile{position:relative;overflow:hidden;border-radius:var(--radius);background:#fff;box-shadow:var(--shadow);padding:16px 16px 14px;border-top:6px solid var(--c,#ccc);}
+  .class-tile h3{font-size:1.05rem;line-height:1.2;padding-right:8px;}
+  .class-tile .teacher{color:var(--muted);font-size:.78rem;margin-top:2px;}
+  .badge-grade{position:absolute;top:12px;right:12px;font-weight:800;font-size:.95rem;color:var(--c,#555);}
+  .progress-wrap{margin-top:12px;}
+  .bar{height:10px;border-radius:999px;background:#eee;overflow:hidden;}
+  .bar > i{display:block;height:100%;background:var(--c,#999);border-radius:999px;}
+  .progress-meta{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);margin-top:6px;}
+  .tile-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;}
+  .pill{font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:999px;background:#f3eefc;color:#6b46c1;}
+  .btn-mini{font:inherit;font-size:.74rem;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:999px;padding:5px 10px;cursor:pointer;}
+  .btn-mini:hover{color:var(--ink);border-color:#d8cff0;}
+
+  /* Buttons */
+  .btn{font:inherit;font-weight:700;border:none;cursor:pointer;border-radius:12px;padding:10px 16px;background:linear-gradient(135deg,#ff6b9d,#9b5de5);color:#fff;box-shadow:var(--shadow);transition:transform .1s;}
+  .btn:hover{transform:translateY(-1px);}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none;}
+  .btn.ok{background:linear-gradient(135deg,#22c55e,#0ea5a3);}
+  .btn.sm{padding:7px 12px;font-size:.82rem;border-radius:10px;}
+
+  /* Today */
+  .today-hero{display:flex;gap:20px;flex-wrap:wrap;align-items:center;background:linear-gradient(135deg,#fff,#fdf5ff);}
+  .ring{--p:0;width:120px;height:120px;border-radius:50%;flex:none;
+    background:conic-gradient(#22c55e calc(var(--p)*1%), #eee 0);
+    display:flex;align-items:center;justify-content:center;position:relative;}
+  .ring::after{content:'';position:absolute;inset:12px;background:#fff;border-radius:50%;}
+  .ring b{position:relative;z-index:1;font-size:1.5rem;}
+  .ring span{position:relative;z-index:1;font-size:.7rem;color:var(--muted);display:block;text-align:center;}
+  .hero-msg h2{font-size:1.3rem;}
+  .hero-msg p{color:var(--muted);margin-top:4px;}
+  .hero-stats{display:flex;gap:18px;margin-top:10px;flex-wrap:wrap;}
+  .hero-stats div b{font-size:1.15rem;}
+  .hero-stats div span{display:block;font-size:.72rem;color:var(--muted);}
+
+  /* Task rows */
+  .task{display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;box-shadow:var(--shadow);padding:11px 14px;margin-bottom:9px;border-left:6px solid var(--c,#ccc);cursor:grab;}
+  .task.done{opacity:.5;}
+  .task.done .t-title{text-decoration:line-through;}
+  .check{width:24px;height:24px;border-radius:8px;border:2px solid var(--c,#ccc);flex:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem;background:#fff;}
+  .check.on{background:var(--c,#22c55e);}
+  .t-body{flex:1;min-width:0;}
+  .t-title{font-weight:700;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .t-sub{font-size:.72rem;color:var(--muted);margin-top:1px;}
+  .t-type{font-size:.68rem;font-weight:800;padding:3px 8px;border-radius:999px;background:#f3eefc;color:#6b46c1;white-space:nowrap;}
+  .t-min{font-size:.72rem;color:var(--muted);white-space:nowrap;min-width:44px;text-align:right;}
+
+  /* Week board */
+  .board{display:grid;grid-template-columns:repeat(7,minmax(150px,1fr));gap:10px;overflow-x:auto;padding-bottom:8px;}
+  .day-col{background:rgba(255,255,255,.7);border-radius:14px;padding:8px;min-height:120px;display:flex;flex-direction:column;}
+  .day-col.today{outline:2px solid #9b5de5;}
+  .day-col.over{background:#f6ecff;}
+  .day-col.off{opacity:.55;}
+  .day-head{font-size:.78rem;font-weight:800;text-align:center;margin-bottom:6px;}
+  .day-head small{display:block;font-weight:600;color:var(--muted);}
+  .day-load{font-size:.68rem;text-align:center;color:var(--muted);margin-bottom:6px;}
+  .mini-task{font-size:.74rem;background:#fff;border-radius:9px;padding:6px 8px;margin-bottom:6px;box-shadow:0 2px 6px rgba(80,60,120,.08);border-left:4px solid var(--c,#ccc);cursor:grab;}
+  .mini-task .mt-title{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mini-task .mt-sub{color:var(--muted);font-size:.66rem;}
+
+  /* Month */
+  .month{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .mhead{font-size:.72rem;font-weight:800;text-align:center;color:var(--muted);padding:4px;}
+  .mcell{min-height:70px;background:rgba(255,255,255,.7);border-radius:10px;padding:6px;font-size:.72rem;cursor:pointer;transition:background .1s;}
+  .mcell:hover{background:#fff;}
+  .mcell.blank{background:transparent;cursor:default;}
+  .mcell.today{outline:2px solid #9b5de5;}
+  .mcell .dn{font-weight:800;}
+  .mcell .load{margin-top:4px;font-size:.66rem;color:#fff;background:var(--ok);border-radius:6px;padding:1px 4px;display:inline-block;}
+  .mcell .load.warn{background:var(--warn);}
+  .mcell .load.heavy{background:var(--danger);}
+
+  /* Controls / settings */
+  .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;}
+  label.fld{display:flex;flex-direction:column;gap:5px;font-size:.78rem;font-weight:700;color:var(--muted);}
+  input,select,textarea{font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);}
+  textarea{width:100%;min-height:150px;resize:vertical;}
+  .day-toggle{display:flex;gap:5px;flex-wrap:wrap;}
+  .day-toggle button{font:inherit;font-size:.75rem;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:9px;padding:7px 10px;cursor:pointer;width:44px;}
+  .day-toggle button.on{background:#9b5de5;color:#fff;border-color:#9b5de5;}
+  .section-title{font-size:1.05rem;font-weight:800;margin:6px 0 12px;display:flex;align-items:center;gap:8px;}
+
+  /* Modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(40,25,60,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:50;}
+  .modal-bg.show{display:flex;}
+  .modal{background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(40,25,60,.4);max-width:640px;width:100%;max-height:88vh;overflow:auto;padding:22px;}
+  .modal h3{margin-bottom:12px;}
+  .close-x{float:right;border:none;background:#f3eefc;color:#6b46c1;font-weight:800;border-radius:9px;width:32px;height:32px;cursor:pointer;font-size:1rem;}
+  .preview-list{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:10px;}
+  .preview-item{display:flex;justify-content:space-between;gap:8px;font-size:.8rem;padding:4px 6px;border-bottom:1px dashed var(--line);}
+  .preview-item:last-child{border:none;}
+
+  .empty{text-align:center;color:var(--muted);padding:36px 10px;}
+  .empty .em{font-size:2.4rem;}
+  .hint{font-size:.78rem;color:var(--muted);background:#faf6ff;border:1px dashed #e5d9f7;border-radius:12px;padding:10px 12px;margin-bottom:14px;}
+  @media(max-width:640px){
+    .board{grid-auto-flow:column;}
+    .ring{width:96px;height:96px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="logo">🌱</div>
+    <div class="title-block">
+      <h1>My Study Planner</h1>
+      <p id="countdown">—</p>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="save-note">💾 Saves automatically in this browser</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="today">☀️ Today</button>
+    <button class="tab" data-tab="week">🗓️ This Week</button>
+    <button class="tab" data-tab="month">📅 Month</button>
+    <button class="tab" data-tab="classes">📚 Classes</button>
+    <button class="tab" data-tab="settings">⚙️ Settings</button>
+  </nav>
+
+  <!-- TODAY -->
+  <section id="today" class="panel active"></section>
+
+  <!-- WEEK -->
+  <section id="week" class="panel">
+    <div class="row" style="justify-content:space-between;margin-bottom:14px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn ghost sm" id="wkPrev">◀</button>
+        <b id="wkLabel" style="min-width:180px;text-align:center;display:inline-block;"></b>
+        <button class="btn ghost sm" id="wkNext">▶</button>
+        <button class="btn ghost sm" id="wkToday">Today</button>
+      </div>
+      <div class="save-note">Drag any task to another day 🖐️</div>
+    </div>
+    <div class="board" id="board"></div>
+    <p class="save-note" style="margin-top:12px;">Tip: moving a task <b>pins</b> it to that day. Use “Re-balance” in Settings to clear all manual moves.</p>
+  </section>
+
+  <!-- MONTH -->
+  <section id="month" class="panel">
+    <div class="row" style="justify-content:space-between;margin-bottom:14px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn ghost sm" id="moPrev">◀</button>
+        <b id="moLabel" style="min-width:170px;text-align:center;display:inline-block;"></b>
+        <button class="btn ghost sm" id="moNext">▶</button>
+      </div>
+      <div class="save-note">🟢 light · 🟡 medium · 🔴 heavy day</div>
+    </div>
+    <div class="card"><div class="month" id="monthGrid"></div></div>
+  </section>
+
+  <!-- CLASSES -->
+  <section id="classes" class="panel">
+    <div class="row" style="justify-content:space-between;margin-bottom:14px;">
+      <div class="section-title">📚 Your Classes</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn ghost sm" id="addClassBtn">+ Add class</button>
+        <button class="btn sm" id="importBtn">📋 Paste a to-do list</button>
+      </div>
+    </div>
+    <div class="grid cols-auto" id="classGrid"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="settings" class="panel">
+    <div class="card" style="margin-bottom:16px;">
+      <div class="section-title">🎯 Finish line</div>
+      <div class="row">
+        <label class="fld">Finish everything by
+          <input type="date" id="targetDate">
+        </label>
+        <label class="fld">Max minutes of school per day (optional)
+          <input type="number" id="dailyCap" min="0" step="15" placeholder="auto">
+        </label>
+        <button class="btn ok sm" id="applySchedule">Apply</button>
+      </div>
+      <div style="margin-top:14px;">
+        <div class="fld" style="margin-bottom:6px;">Days she does schoolwork</div>
+        <div class="day-toggle" id="dayToggle"></div>
+      </div>
+      <div class="hint" id="pace" style="margin-top:14px;"></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="section-title">⏱️ Effort estimates</div>
+      <p class="save-note" style="margin-bottom:10px;">How many minutes each type of assignment usually takes. Change one and the whole schedule updates.</p>
+      <div id="catEditor" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🔧 Tools & backup</div>
+      <div class="row">
+        <button class="btn ghost sm" id="rebalance">♻️ Re-balance (clear manual moves)</button>
+        <button class="btn ghost sm" id="exportBtn">⬇️ Save a backup file</button>
+        <button class="btn ghost sm" id="importFileBtn">⬆️ Load a backup</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none;">
+        <button class="btn ghost sm" id="resetBtn" style="color:var(--danger);">🗑️ Reset everything</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal" id="modalBox"></div>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- data ---------- */
+const CLASS_COLORS = ["#ff6b9d","#ffa41b","#4d7cff","#9b5de5","#00c2a8","#22c55e","#f43f5e","#0ea5e9"];
+
+const DEFAULT_CATEGORIES = {
+  "Quiz":            {min:15, kw:["quiz"]},
+  "Knowledge Check": {min:20, kw:["knowledge check"]},
+  "Progress Check":  {min:20, kw:["progress check"]},
+  "Exam":            {min:60, kw:["exam","test"]},
+  "Lab":             {min:60, kw:["lab"]},
+  "Writing":         {min:60, kw:["turnitin","research report","research plan","report","essay","draft","thesis","outline","reading log","novel guide","guide"]},
+  "Major Writing":   {min:90, kw:["revised research report","literary analysis draft"]},
+  "Honors":          {min:45, kw:["honor"]},
+  "Assignment":      {min:30, kw:["assignment"]},
+  "Discussion":      {min:15, kw:["discussion"]}
+};
+
+// English pre-loaded from the portal to-do list (in sequence)
+const ENGLISH_TITLES = [
+  "Novel Progress Check 2",
+  "Literary Analysis Draft Assignment",
+  "TurnItIn Novel Guide: First Book",
+  "3.10 Formal and Informal Presentations Assignment",
+  "3.10 Spread the Word Honors Assignment",
+  "Unit 3 Knowledge Check",
+  "3.11 The Art of Persuasion Exam",
+  "4.2 Analyzing Historical Fiction Quiz",
+  "4.3 History as Documents Quiz",
+  "4.4 Writing History Honors Assignment",
+  "4.6 Your Research Plan Assignment",
+  "4.7 Ask an Expert Honors Assignment",
+  "4.8 Varying Sentences Quiz",
+  "4.9 Using Colons with Direct Quotes Assignment",
+  "4.10 Integrate Formats Assignment",
+  "Unit 4 Knowledge Check",
+  "4.11 Reading History Exam",
+  "TurnItIn Reading Log",
+  "5.2 Evaluating a Literary Work Quiz",
+  "TurnItIn 5.2 Literary Criticism Honors Assignment",
+  "5.3 Evaluating Sources Quiz",
+  "5.3 A Closer Look Honors Assignment",
+  "5.5 Taking Notes Knowledge Check",
+  "5.6 Recording Source Information Assignment",
+  "5.7 TurnItIn Thesis Statement Assignment",
+  "5.9 Research Report Outline Assignment",
+  "5.11 Revised Research Report",
+  "5.11 A Model for Integrating Sources Honor Assignment",
+  "5.12 Adding Direct Quotes Assignment"
+];
+
+function categorize(title){
+  const t = title.toLowerCase();
+  const cats = STATE ? STATE.categories : DEFAULT_CATEGORIES;
+  // check most-specific first: Major Writing, then the rest in a sensible order
+  const order = ["Major Writing","Exam","Quiz","Knowledge Check","Progress Check","Lab","Discussion","Writing","Honors","Assignment"];
+  for(const name of order){
+    const c = cats[name]; if(!c) continue;
+    if(c.kw.some(k=>t.includes(k))) return {type:name, min:c.min};
+  }
+  return {type:"Assignment", min:(cats["Assignment"]?cats["Assignment"].min:30)};
+}
+
+function seedClasses(){
+  // name, teacher, color, grade, total, done  (done/total from the portal tiles)
+  const defs = [
+    {name:"Honors English 1",   teacher:"McGregor",  color:"#ff6b9d", grade:87.64, total:68, done:33, seedTitles:ENGLISH_TITLES},
+    {name:"Honors World History",teacher:"Wells",    color:"#ffa41b", grade:98.03, total:51, done:23, remaining:28},
+    {name:"Honors Geometry",    teacher:"Johnson",   color:"#4d7cff", grade:89.72, total:44, done:21, remaining:23},
+    {name:"Honors Physics 1",   teacher:"Accardo",   color:"#9b5de5", grade:87.03, total:41, done:18, remaining:23},
+    {name:"Social Problems 1",  teacher:"",          color:"#00c2a8", grade:94.01, total:44, done:30, remaining:14},
+    {name:"Criminology",        teacher:"",          color:"#22c55e", grade:95.61, total:44, done:40, remaining:4}
+  ];
+  const classes=[], tasks=[];
+  defs.forEach((d,ci)=>{
+    const id="c"+ci;
+    classes.push({id, name:d.name, teacher:d.teacher, color:d.color, grade:d.grade, total:d.total, done:d.done});
+    if(d.seedTitles){
+      d.seedTitles.forEach((title,si)=>{
+        const cat=categorize(title);
+        tasks.push({id:id+"_t"+si, classId:id, title, type:cat.type, min:cat.min, status:"todo", seq:si, pinnedDate:null});
+      });
+    } else {
+      for(let i=0;i<d.remaining;i++){
+        tasks.push({id:id+"_t"+i, classId:id, title:d.name+" — item "+(i+1)+" (edit me)", type:"Assignment", min:30, status:"todo", seq:i, pinnedDate:null, placeholder:true});
+      }
+    }
+  });
+  return {classes, tasks};
+}
+
+function defaultState(){
+  const seeded = seedClasses();
+  return {
+    version:1,
+    settings:{ targetDate:"2026-08-25", dailyCapMin:null, workDays:[0,1,2,3,4,5,6] },
+    categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
+    classes: seeded.classes,
+    tasks: seeded.tasks
+  };
+}
+
+/* ---------- persistence ---------- */
+const LS_KEY="studyPlanner.v1";
+let STATE = null;
+function load(){
+  try{ const raw=localStorage.getItem(LS_KEY); if(raw){STATE=JSON.parse(raw); return;} }catch(e){}
+  STATE=defaultState();
+}
+function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(STATE)); }catch(e){} }
+
+/* ---------- date helpers ---------- */
+function fmt(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function parseD(s){ const p=s.split("-").map(Number); return new Date(p[0],p[1]-1,p[2]); }
+function todayStr(){ return fmt(new Date()); }
+function addDays(s,n){ const d=parseD(s); d.setDate(d.getDate()+n); return fmt(d); }
+function weekday(s){ return parseD(s).getDay(); }
+function daysBetween(a,b){ return Math.round((parseD(b)-parseD(a))/86400000); }
+const DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MON=["January","February","March","April","May","June","July","August","September","October","November","December"];
+function prettyDate(s){ const d=parseD(s); return DOW[d.getDay()]+", "+MON[d.getMonth()]+" "+d.getDate(); }
+
+function workingDays(start,end,wd){
+  const set=new Set(wd), out=[]; let c=start, guard=0;
+  while(parseD(c)<=parseD(end) && guard<800){ if(set.has(weekday(c))) out.push(c); c=addDays(c,1); guard++; }
+  return out;
+}
+
+/* ---------- scheduler ---------- */
+function computeSchedule(){
+  const s=STATE.settings;
+  const start = todayStr();
+  const end = s.targetDate < start ? start : s.targetDate;
+  const days = workingDays(start,end,s.workDays);
+  const map={}; days.forEach(d=> map[d]={date:d, tasks:[], min:0});
+  const todo = STATE.tasks.filter(t=>t.status==="todo");
+
+  const pinned=[], unpinned=[];
+  todo.forEach(t=>{ (t.pinnedDate && map[t.pinnedDate]) ? pinned.push(t) : unpinned.push(t); });
+  pinned.forEach(t=>{ map[t.pinnedDate].tasks.push(t); map[t.pinnedDate].min+=t.min; });
+
+  // round-robin across classes, each class ordered by seq
+  const byClass={};
+  unpinned.forEach(t=>{ (byClass[t.classId]=byClass[t.classId]||[]).push(t); });
+  Object.values(byClass).forEach(a=>a.sort((x,y)=>x.seq-y.seq));
+  const queues=Object.values(byClass);
+  const ordered=[];
+  let more=true;
+  while(more){ more=false; for(const q of queues){ if(q.length){ ordered.push(q.shift()); more=true; } } }
+
+  const totalMin = STATE.tasks.filter(t=>t.status==="todo").reduce((a,t)=>a+t.min,0);
+  const unpMin = ordered.reduce((a,t)=>a+t.min,0);
+  let perDay = (s.dailyCapMin && s.dailyCapMin>0) ? s.dailyCapMin : (days.length? unpMin/days.length : unpMin);
+
+  // Cumulative "water-filling": place each task on the day where the running total of
+  // minutes crosses that day's share. Spreads work evenly across every available day,
+  // preserves order, and never dumps leftovers onto the final day.
+  let placed=0;
+  for(const t of ordered){
+    let di = perDay>0 ? Math.floor(placed / perDay) : 0;
+    if(di > days.length-1) di = days.length-1;
+    if(days.length){ map[days[di]].tasks.push(t); map[days[di]].min+=t.min; placed+=t.min; }
+  }
+
+  return {map, days, perDay, totalMin, remainingCount:todo.length};
+}
+
+function minToStr(m){
+  if(m<60) return m+"m";
+  const h=Math.floor(m/60), r=m%60;
+  return r? h+"h "+r+"m" : h+"h";
+}
+function classById(id){ return STATE.classes.find(c=>c.id===id); }
+
+/* ---------- rendering ---------- */
+let SCHED=null;
+function recompute(){ SCHED=computeSchedule(); }
+
+function render(){
+  recompute(); save();
+  renderCountdown();
+  renderToday();
+  renderWeek();
+  renderMonth();
+  renderClasses();
+  renderSettings();
+}
+
+function renderCountdown(){
+  const s=STATE.settings, today=todayStr();
+  const dleft=daysBetween(today,s.targetDate);
+  const el=document.getElementById("countdown");
+  const remaining=STATE.tasks.filter(t=>t.status==="todo").length;
+  if(dleft<0){ el.textContent="Target date has passed — pick a new finish date in Settings."; return; }
+  el.textContent = remaining+" assignments left · "+dleft+" days until "+prettyDate(s.targetDate);
+}
+
+const MSGS=[
+  "One step at a time. You've got this! 💪",
+  "Small chunks beat one big mountain. Let's go! ⛰️",
+  "Every task you finish is one less to worry about. ✨",
+  "Progress, not perfection. Knock out today's stack! 🌟",
+  "Future-you will be so glad you did this today. 💛"
+];
+
+function renderToday(){
+  const el=document.getElementById("today");
+  const today=todayStr();
+  const isWork = new Set(STATE.settings.workDays).has(weekday(today));
+  const day = SCHED.map[today];
+  const list = day ? day.tasks.slice() : [];
+  // also show anything the user pinned to today but already done today? keep simple: show scheduled todo
+  const doneToday = STATE.tasks.filter(t=>t.status==="done" && t.doneDate===today);
+  const totalToday = list.length + doneToday.length;
+  const pct = totalToday? Math.round(doneToday.length/totalToday*100) : (isWork?0:100);
+  const msg = MSGS[ (parseD(today).getDate()) % MSGS.length ];
+
+  let html = `<div class="card today-hero" style="margin-bottom:16px;">
+      <div class="ring" style="--p:${pct}"><div><b>${pct}%</b><span>today</span></div></div>
+      <div class="hero-msg">
+        <h2>${prettyDate(today)}</h2>
+        <p>${ !isWork ? "It's a day off — relax! 🎉 (You can change work days in Settings.)" : (list.length? msg : "Nothing scheduled today. Nice work getting ahead! 🎉") }</p>
+        <div class="hero-stats">
+          <div><b>${doneToday.length}/${totalToday||0}</b><span>done today</span></div>
+          <div><b>${minToStr(list.reduce((a,t)=>a+t.min,0))}</b><span>left today</span></div>
+          <div><b>${STATE.tasks.filter(t=>t.status==="todo").length}</b><span>left overall</span></div>
+        </div>
+      </div>
+    </div>`;
+
+  if(list.length){
+    html += `<div class="section-title">📌 Today's stack</div>`;
+    html += list.map(t=>taskRow(t)).join("");
+  } else if(isWork){
+    html += `<div class="card empty"><div class="em">🎉</div><p>All clear for today. Peek at <b>This Week</b> to get ahead if you're feeling it.</p></div>`;
+  }
+  if(doneToday.length){
+    html += `<div class="section-title" style="margin-top:18px;">✅ Finished today</div>`;
+    html += doneToday.map(t=>taskRow(t)).join("");
+  }
+  el.innerHTML=html;
+  wireTaskRows(el);
+}
+
+function taskRow(t){
+  const c=classById(t.classId)||{color:"#ccc",name:""};
+  const done=t.status==="done";
+  return `<div class="task ${done?'done':''}" style="--c:${c.color}" draggable="true" data-id="${t.id}">
+      <div class="check ${done?'on':''}" data-check="${t.id}">${done?'✓':''}</div>
+      <div class="t-body">
+        <div class="t-title">${esc(t.title)}</div>
+        <div class="t-sub">${esc(c.name)}</div>
+      </div>
+      <span class="t-type">${esc(t.type)}</span>
+      <span class="t-min">${minToStr(t.min)}</span>
+    </div>`;
+}
+
+function wireTaskRows(scope){
+  scope.querySelectorAll("[data-check]").forEach(el=>{
+    el.onclick=(e)=>{ e.stopPropagation(); toggleDone(el.getAttribute("data-check")); };
+  });
+  scope.querySelectorAll(".task[draggable]").forEach(el=>{
+    el.addEventListener("dragstart",ev=>{ ev.dataTransfer.setData("text/plain", el.getAttribute("data-id")); });
+  });
+}
+
+function toggleDone(id){
+  const t=STATE.tasks.find(x=>x.id===id); if(!t) return;
+  if(t.status==="done"){ t.status="todo"; delete t.doneDate; }
+  else { t.status="done"; t.doneDate=todayStr(); }
+  // keep class done-count in sync (portal baseline + our completions)
+  render();
+}
+
+/* ----- week board ----- */
+let weekStart = null; // Sunday of shown week
+function initWeek(){ const t=parseD(todayStr()); t.setDate(t.getDate()-t.getDay()); weekStart=fmt(t); }
+function renderWeek(){
+  if(!weekStart) initWeek();
+  const board=document.getElementById("board");
+  const today=todayStr();
+  const workSet=new Set(STATE.settings.workDays);
+  document.getElementById("wkLabel").textContent = prettyDate(weekStart).split(", ")[1] + " – " + prettyDate(addDays(weekStart,6)).split(", ")[1];
+  let html="";
+  for(let i=0;i<7;i++){
+    const d=addDays(weekStart,i);
+    const day=SCHED.map[d];
+    const tasks=day?day.tasks:[];
+    const isToday=d===today, isOff=!workSet.has(weekday(d));
+    const load=tasks.reduce((a,t)=>a+t.min,0);
+    html+=`<div class="day-col ${isToday?'today':''} ${isOff?'off':''}" data-date="${d}">
+        <div class="day-head">${DOW[weekday(d)]}<small>${MON[parseD(d).getMonth()].slice(0,3)} ${parseD(d).getDate()}</small></div>
+        <div class="day-load">${tasks.length?minToStr(load):(isOff?'day off':'—')}</div>
+        ${tasks.map(t=>miniTask(t)).join("")}
+      </div>`;
+  }
+  board.innerHTML=html;
+  wireBoard(board);
+}
+function miniTask(t){
+  const c=classById(t.classId)||{color:"#ccc",name:""};
+  return `<div class="mini-task" style="--c:${c.color}" draggable="true" data-id="${t.id}">
+      <div class="mt-title">${esc(t.title)}</div>
+      <div class="mt-sub">${esc(c.name)} · ${esc(t.type)} · ${minToStr(t.min)}</div>
+    </div>`;
+}
+function wireBoard(board){
+  board.querySelectorAll(".mini-task").forEach(el=>{
+    el.addEventListener("dragstart",ev=>ev.dataTransfer.setData("text/plain", el.getAttribute("data-id")));
+  });
+  board.querySelectorAll(".day-col").forEach(col=>{
+    col.addEventListener("dragover",ev=>{ev.preventDefault();col.classList.add("over");});
+    col.addEventListener("dragleave",()=>col.classList.remove("over"));
+    col.addEventListener("drop",ev=>{
+      ev.preventDefault(); col.classList.remove("over");
+      const id=ev.dataTransfer.getData("text/plain");
+      const t=STATE.tasks.find(x=>x.id===id); if(!t) return;
+      t.pinnedDate=col.getAttribute("data-date"); render();
+    });
+  });
+}
+
+/* ----- month ----- */
+let monthCursor=null; // YYYY-MM-01
+function initMonth(){ const d=parseD(todayStr()); monthCursor=fmt(new Date(d.getFullYear(),d.getMonth(),1)); }
+function renderMonth(){
+  if(!monthCursor) initMonth();
+  const grid=document.getElementById("monthGrid");
+  const first=parseD(monthCursor);
+  document.getElementById("moLabel").textContent=MON[first.getMonth()]+" "+first.getFullYear();
+  const today=todayStr();
+  const startPad=first.getDay();
+  const dim=new Date(first.getFullYear(),first.getMonth()+1,0).getDate();
+  let html=DOW.map(d=>`<div class="mhead">${d}</div>`).join("");
+  for(let i=0;i<startPad;i++) html+=`<div class="mcell blank"></div>`;
+  for(let day=1;day<=dim;day++){
+    const ds=fmt(new Date(first.getFullYear(),first.getMonth(),day));
+    const info=SCHED.map[ds];
+    const load=info?info.min:0;
+    let cls="load"; if(load>SCHED.perDay*1.5) cls="load heavy"; else if(load>SCHED.perDay*0.9) cls="load warn";
+    html+=`<div class="mcell ${ds===today?'today':''}" data-date="${ds}">
+        <div class="dn">${day}</div>
+        ${load?`<span class="${cls}">${minToStr(load)}</span>`:""}
+      </div>`;
+  }
+  grid.innerHTML=html;
+  grid.querySelectorAll(".mcell[data-date]").forEach(c=>{
+    c.onclick=()=>{ const d=c.getAttribute("data-date"); const t=parseD(d); t.setDate(t.getDate()-t.getDay()); weekStart=fmt(t); switchTab("week"); };
+  });
+}
+
+/* ----- classes ----- */
+function renderClasses(){
+  const grid=document.getElementById("classGrid");
+  grid.innerHTML=STATE.classes.map(c=>{
+    const todo=STATE.tasks.filter(t=>t.classId===c.id && t.status==="todo").length;
+    const doneByUs=STATE.tasks.filter(t=>t.classId===c.id && t.status==="done").length;
+    const doneTotal=(c.done||0)+doneByUs;
+    const pct=c.total? Math.min(100,Math.round(doneTotal/c.total*100)) : 0;
+    const placeholder=STATE.tasks.some(t=>t.classId===c.id && t.placeholder);
+    return `<div class="class-tile" style="--c:${c.color}">
+        <div class="badge-grade">${c.grade!=null?c.grade+"%":""}</div>
+        <h3>${esc(c.name)}</h3>
+        <div class="teacher">${c.teacher?esc(c.teacher):"&nbsp;"}</div>
+        <div class="progress-wrap">
+          <div class="bar"><i style="width:${pct}%"></i></div>
+          <div class="progress-meta"><span>${doneTotal}/${c.total} in portal</span><span>${pct}%</span></div>
+        </div>
+        <div class="tile-foot">
+          <span class="pill">${todo} to do</span>
+          <div style="display:flex;gap:6px;">
+            <button class="btn-mini" data-import="${c.id}">📋 Paste</button>
+            <button class="btn-mini" data-view="${c.id}">View</button>
+          </div>
+        </div>
+        ${placeholder?`<div class="save-note" style="margin-top:8px;color:#e07b00;">⚠️ placeholder items — paste the real list</div>`:""}
+      </div>`;
+  }).join("");
+  grid.querySelectorAll("[data-import]").forEach(b=>b.onclick=()=>openImport(b.getAttribute("data-import")));
+  grid.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>openClassView(b.getAttribute("data-view")));
+}
+
+/* ----- settings ----- */
+function renderSettings(){
+  document.getElementById("targetDate").value=STATE.settings.targetDate;
+  document.getElementById("dailyCap").value=STATE.settings.dailyCapMin||"";
+  const dt=document.getElementById("dayToggle");
+  dt.innerHTML=DOW.map((d,i)=>`<button data-dow="${i}" class="${STATE.settings.workDays.includes(i)?'on':''}">${d}</button>`).join("");
+  dt.querySelectorAll("[data-dow]").forEach(b=>b.onclick=()=>{
+    const i=Number(b.getAttribute("data-dow"));
+    const set=new Set(STATE.settings.workDays);
+    set.has(i)?set.delete(i):set.add(i);
+    STATE.settings.workDays=[...set].sort();
+    render();
+  });
+  // categories
+  const ce=document.getElementById("catEditor");
+  ce.innerHTML=Object.keys(STATE.categories).map(name=>`
+    <label class="fld">${esc(name)}
+      <input type="number" min="0" step="5" value="${STATE.categories[name].min}" data-cat="${esc(name)}"> minutes
+    </label>`).join("");
+  ce.querySelectorAll("[data-cat]").forEach(inp=>inp.onchange=()=>{
+    const name=inp.getAttribute("data-cat"); const v=Math.max(0,Number(inp.value)||0);
+    STATE.categories[name].min=v;
+    // re-apply to existing tasks of that type
+    STATE.tasks.forEach(t=>{ if(t.type===name) t.min=v; });
+    render();
+  });
+  // pace summary
+  const pace=document.getElementById("pace");
+  const days=SCHED.days.length, mins=SCHED.totalMin;
+  const per=days?Math.round(mins/days):mins;
+  pace.innerHTML= days
+    ? `To finish <b>${SCHED.remainingCount}</b> assignments (~${minToStr(mins)} of work) by <b>${prettyDate(STATE.settings.targetDate)}</b>, that's about <b>${minToStr(per)} per working day</b> across <b>${days}</b> days. Move the finish date earlier and this goes up; later and it goes down.`
+    : `No working days between today and the finish date — pick a later date or turn on more work days.`;
+}
+
+/* ---------- modal ---------- */
+function openModal(html){ document.getElementById("modalBox").innerHTML=html; document.getElementById("modalBg").classList.add("show"); }
+function closeModal(){ document.getElementById("modalBg").classList.remove("show"); }
+document.getElementById("modalBg").addEventListener("click",e=>{ if(e.target.id==="modalBg") closeModal(); });
+
+let importTargetClass=null, importParsed=[];
+function openImport(classId){
+  importTargetClass=classId||null;
+  const opts=STATE.classes.map(c=>`<option value="${c.id}" ${c.id===classId?'selected':''}>${esc(c.name)}</option>`).join("");
+  openModal(`
+    <button class="close-x" onclick="closeModal()">×</button>
+    <h3>📋 Paste a to-do list</h3>
+    <p class="save-note" style="margin-bottom:10px;">Copy the assignment list from the portal and paste it below — or type one assignment per line. I'll detect the type and estimate the time. Pasting <b>replaces</b> this class's current to-do items.</p>
+    <label class="fld" style="margin-bottom:10px;">Class
+      <select id="impClass">${opts}</select>
+    </label>
+    <textarea id="impText" placeholder="Novel Progress Check 2&#10;3.11 The Art of Persuasion Exam&#10;4.2 Analyzing Historical Fiction Quiz&#10;..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button class="btn sm" onclick="parseImport()">Preview</button>
+      <button class="btn ok sm" id="impConfirm" style="display:none;" onclick="confirmImport()">Add these</button>
+    </div>
+    <div id="impPreview"></div>
+  `);
+}
+function parseImport(){
+  const raw=document.getElementById("impText").value;
+  const skip=/^(past due|due:|due |search|activities|to-?do)/i;
+  const lines=raw.split("\n").map(l=>l.trim()).filter(l=>l.length>2)
+    .filter(l=>!skip.test(l))
+    .filter(l=>!l.includes(" -- "))       // class attribution line
+    .filter(l=>!/^\d+$/.test(l));         // stray badge numbers
+  importParsed=lines.map(title=>({title, ...categorize(title)}));
+  const box=document.getElementById("impPreview");
+  if(!importParsed.length){ box.innerHTML=`<p class="save-note" style="margin-top:10px;">Nothing detected — paste the list or type one item per line.</p>`; return; }
+  box.innerHTML=`<div class="preview-list">${importParsed.map(p=>`
+      <div class="preview-item"><span>${esc(p.title)}</span><span style="color:var(--muted);">${p.type} · ${minToStr(p.min)}</span></div>`).join("")}</div>
+      <p class="save-note" style="margin-top:8px;">${importParsed.length} items detected. You can fine-tune times later in Settings.</p>`;
+  document.getElementById("impConfirm").style.display="inline-block";
+}
+function confirmImport(){
+  const cid=document.getElementById("impClass").value;
+  STATE.tasks=STATE.tasks.filter(t=>!(t.classId===cid && t.status==="todo")); // clear existing to-do (keep done history)
+  importParsed.forEach((p,i)=>{
+    STATE.tasks.push({id:cid+"_i"+Date_now()+"_"+i, classId:cid, title:p.title, type:p.type, min:p.min, status:"todo", seq:i, pinnedDate:null});
+  });
+  closeModal(); render(); switchTab("classes");
+}
+// avoid Date.now name clash in some linters
+function Date_now(){ return (new Date()).getTime(); }
+
+function openClassView(cid){
+  const c=classById(cid);
+  const tasks=STATE.tasks.filter(t=>t.classId===cid).sort((a,b)=>(a.status===b.status?a.seq-b.seq:(a.status==="done"?1:-1)));
+  openModal(`
+    <button class="close-x" onclick="closeModal()">×</button>
+    <h3 style="color:${c.color}">${esc(c.name)}</h3>
+    <p class="save-note" style="margin-bottom:12px;">${tasks.filter(t=>t.status==="todo").length} to do · ${tasks.filter(t=>t.status==="done").length} done here</p>
+    <div style="max-height:52vh;overflow:auto;">
+      ${tasks.map(t=>taskRow(t)).join("") || '<p class="empty">No items yet — paste a list.</p>'}
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;">
+      <button class="btn sm" onclick="openImport('${cid}')">📋 Paste list</button>
+    </div>
+  `);
+  wireTaskRows(document.getElementById("modalBox"));
+}
+
+function openAddClass(){
+  openModal(`
+    <button class="close-x" onclick="closeModal()">×</button>
+    <h3>➕ Add a class</h3>
+    <label class="fld" style="margin-bottom:10px;">Class name<input id="ncName" placeholder="e.g. Spanish 1"></label>
+    <label class="fld" style="margin-bottom:10px;">Teacher (optional)<input id="ncTeacher"></label>
+    <button class="btn ok sm" onclick="addClass()">Add class</button>
+  `);
+}
+function addClass(){
+  const name=document.getElementById("ncName").value.trim(); if(!name) return;
+  const teacher=document.getElementById("ncTeacher").value.trim();
+  const id="c"+Date_now();
+  const color=CLASS_COLORS[STATE.classes.length % CLASS_COLORS.length];
+  STATE.classes.push({id,name,teacher,color,grade:null,total:0,done:0});
+  closeModal(); render(); openImport(id);
+}
+
+/* ---------- tabs ---------- */
+function switchTab(name){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.getAttribute("data-tab")===name));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id===name));
+}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>switchTab(t.getAttribute("data-tab")));
+
+/* ---------- controls ---------- */
+document.getElementById("applySchedule").onclick=()=>{
+  STATE.settings.targetDate=document.getElementById("targetDate").value||STATE.settings.targetDate;
+  const cap=Number(document.getElementById("dailyCap").value);
+  STATE.settings.dailyCapMin= cap>0? cap : null;
+  render();
+};
+document.getElementById("targetDate").onchange=()=>{ STATE.settings.targetDate=document.getElementById("targetDate").value; render(); };
+document.getElementById("rebalance").onclick=()=>{ STATE.tasks.forEach(t=>t.pinnedDate=null); render(); };
+document.getElementById("addClassBtn").onclick=openAddClass;
+document.getElementById("importBtn").onclick=()=>openImport(STATE.classes[0]?STATE.classes[0].id:null);
+
+document.getElementById("wkPrev").onclick=()=>{ weekStart=addDays(weekStart,-7); renderWeek(); };
+document.getElementById("wkNext").onclick=()=>{ weekStart=addDays(weekStart,7); renderWeek(); };
+document.getElementById("wkToday").onclick=()=>{ initWeek(); renderWeek(); };
+document.getElementById("moPrev").onclick=()=>{ const d=parseD(monthCursor); monthCursor=fmt(new Date(d.getFullYear(),d.getMonth()-1,1)); renderMonth(); };
+document.getElementById("moNext").onclick=()=>{ const d=parseD(monthCursor); monthCursor=fmt(new Date(d.getFullYear(),d.getMonth()+1,1)); renderMonth(); };
+
+document.getElementById("exportBtn").onclick=()=>{
+  const blob=new Blob([JSON.stringify(STATE,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="study-planner-backup-"+todayStr()+".json"; a.click();
+};
+document.getElementById("importFileBtn").onclick=()=>document.getElementById("importFile").click();
+document.getElementById("importFile").onchange=(e)=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ STATE=JSON.parse(r.result); save(); initWeek(); initMonth(); render(); alert("Backup loaded ✅"); }catch(err){ alert("Couldn't read that file."); } };
+  r.readAsText(f);
+};
+document.getElementById("resetBtn").onclick=()=>{
+  if(confirm("Reset everything back to the starting setup? Your changes will be lost.")){
+    STATE=defaultState(); initWeek(); initMonth(); render();
+  }
+};
+
+/* ---------- util ---------- */
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+/* ---------- boot ---------- */
+load(); initWeek(); initMonth(); render();
+</script>
+</body>
+</html>
