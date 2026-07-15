@@ -76,7 +76,7 @@
 
   /* Class tiles */
   .class-tile{position:relative;overflow:hidden;border-radius:var(--radius);background:#fff;box-shadow:var(--shadow);padding:16px 16px 14px;border-top:6px solid var(--c,#ccc);}
-  .class-tile h3{font-size:1.05rem;line-height:1.2;padding-right:8px;}
+  .class-tile h3{font-size:1.05rem;line-height:1.2;padding-right:62px;}
   .class-tile .teacher{color:var(--muted);font-size:.78rem;margin-top:2px;}
   .badge-grade{position:absolute;top:12px;right:12px;font-weight:800;font-size:.95rem;color:var(--c,#555);}
   .progress-wrap{margin-top:12px;}
@@ -303,15 +303,20 @@ const CLASS_COLORS = ["#ff6b9d","#ffa41b","#4d7cff","#9b5de5","#00c2a8","#22c55e
 
 const DEFAULT_CATEGORIES = {
   "Quiz":            {min:15, kw:["quiz"]},
+  "Checkpoint":      {min:20, kw:["checkpoint"]},
+  "InQuizitive":     {min:25, kw:["inquizitive"]},
   "Knowledge Check": {min:20, kw:["knowledge check"]},
   "Progress Check":  {min:20, kw:["progress check"]},
-  "Exam":            {min:60, kw:["exam","test"]},
+  "Discussion":      {min:15, kw:["discussion"]},
+  "Exercise":        {min:30, kw:["exercise"]},
+  "Dropbox":         {min:30, kw:["dropbox"]},
   "Lab":             {min:60, kw:["lab"]},
-  "Writing":         {min:60, kw:["turnitin","research report","research plan","report","essay","draft","thesis","outline","reading log","novel guide","guide"]},
-  "Major Writing":   {min:90, kw:["revised research report","literary analysis draft"]},
+  "Practice Test":   {min:45, kw:["practice test"]},
+  "Exam":            {min:60, kw:["exam","test"]},
+  "Writing":         {min:60, kw:["turnitin","research plan","report","essay","draft","thesis","outline","reading log","novel guide","guide","slide show"]},
+  "Major Writing":   {min:90, kw:["revised research report","literary analysis draft","final draft"]},
   "Honors":          {min:45, kw:["honor"]},
-  "Assignment":      {min:30, kw:["assignment"]},
-  "Discussion":      {min:15, kw:["discussion"]}
+  "Assignment":      {min:30, kw:["assignment"]}
 };
 
 // English pre-loaded from the portal to-do list (in sequence)
@@ -347,11 +352,96 @@ const ENGLISH_TITLES = [
   "5.12 Adding Direct Quotes Assignment"
 ];
 
+const GEOMETRY_TITLES = [
+  "5.4/5 Checkpoint",
+  "Module 5 Honors Project",
+  "Module 6 Honors Assignment",
+  "Reasoning and Proofs Quiz #7.3: Lessons 6 and 7",
+  "8.1/2 Checkpoint",
+  "8.3/4 Checkpoint",
+  "Statistics Quiz #8.1: Lessons 1-4",
+  "8.5/6 Checkpoint",
+  "8.7 Checkpoint",
+  "Statistics Quiz #8.2: Lessons 5-7",
+  "Module 8 Honors Assignment",
+  "Module 8 Statistics Practice Test",
+  "Module 8 Statistics Test",
+  "9.1/2 Checkpoint",
+  "9.3 Checkpoint",
+  "Probability Quiz #9.1: Lessons 1-3",
+  "9.4/5 Checkpoint",
+  "Probability Quiz #9.2: Lessons 4 and 5",
+  "Module 9 Honors Assignment",
+  "Module 9 Probability Practice Test",
+  "Module 9 Probability Test"
+];
+const PHYSICS_TITLES = [
+  "05.01 Simple Harmonic Motion",
+  "05.06 Lens and Mirror Lab",
+  "05.07 Snell's Law",
+  "TurnItIn 05.08B Telecommunications and Digital Information",
+  "TurnItIn 05.08C Engineering Design II",
+  "05.10 Waves and Optics Exam",
+  "06.01 Temperature",
+  "06.02 Thermal Energy",
+  "06.03 Honors Thermodynamics",
+  "06.04 Thermal Energy Lab",
+  "06.05 Atomic Theory",
+  "06.06 Duality of Light",
+  "06.06B Atomic Spectra",
+  "06.07 Photoelectric Effect",
+  "06.08 Honors Radiation and Radioactivity",
+  "TurnItIn 06.08B Fission and Fusion",
+  "06.09 Relativity and Cosmology",
+  "TurnItIn 06.09B Engineering Design III",
+  "06.00 Heat and Particles Practice Test",
+  "06.11 Heat and Particles Exam"
+];
+const WORLDHIST_TITLES = [
+  "TurnItIn Post-World War II Comparison Research Paper - Outline Assignment",
+  "TurnItIn Modern Takes on Fourier, Marx, or Engels Assignment",
+  "Chapter 17: Primary Source Exercise",
+  "TurnItIn Post-World War II Comparison Research Paper - Rough Draft Assignment",
+  "Chapter 17 Test",
+  "Chapter 18: Primary Source Exercise",
+  "Chapter 18: Map Exercise",
+  "TurnItIn Comparing Global Women's Rights Assignment",
+  "Chapter 18 Test",
+  "InQuizitive: Chapter 19: Global Crisis, 1910-1939",
+  "Chapter 19: Primary Source Exercise",
+  "TurnItIn Post-World War II Comparison Research Paper - Final Draft Assignment",
+  "Chapter 19 Test",
+  "InQuizitive: Chapter 20: The Three-World Order, 1940-1975",
+  "Chapter 20: Map Exercise",
+  "TurnItIn Cold War Slide Show Assignment",
+  "Chapter 20 Test",
+  "Chapter 21: Primary Source Exercise",
+  "Chapter 21: Map Exercise",
+  "Chapter 21 Test",
+  "InQuizitive: Chapter 22: Twenty-First-Century Global Challenges, 2001-the Present",
+  "Chapter 22: Primary Source Exercise",
+  "TurnItIn Globalization Debate Assignment",
+  "Chapter 22 Test"
+];
+const SOCIAL_TITLES = [
+  "Unit 7 Critical Thinking Dropbox",
+  "Unit 7 Lab Dropbox",
+  "Unit 7 Quiz",
+  "Unit 7 Discussion 1",
+  "Unit 7 Discussion 2",
+  "Unit 8 Critical Thinking Dropbox",
+  "Unit 8 Lab Dropbox",
+  "Unit 8 Quiz"
+];
+const CRIMINOLOGY_TITLES = [
+  "Unit 8 Quiz"
+];
+
 function categorize(title){
   const t = title.toLowerCase();
   const cats = STATE ? STATE.categories : DEFAULT_CATEGORIES;
   // check most-specific first: Major Writing, then the rest in a sensible order
-  const order = ["Major Writing","Exam","Quiz","Knowledge Check","Progress Check","Lab","Discussion","Writing","Honors","Assignment"];
+  const order = ["Major Writing","Practice Test","Exam","InQuizitive","Quiz","Knowledge Check","Progress Check","Checkpoint","Lab","Dropbox","Exercise","Discussion","Writing","Honors","Assignment"];
   for(const name of order){
     const c = cats[name]; if(!c) continue;
     if(c.kw.some(k=>t.includes(k))) return {type:name, min:c.min};
@@ -362,12 +452,12 @@ function categorize(title){
 function seedClasses(){
   // name, teacher, color, grade, total, done  (done/total from the portal tiles)
   const defs = [
-    {name:"Honors English 1",   teacher:"McGregor",  color:"#ff6b9d", grade:87.64, total:68, done:33, seedTitles:ENGLISH_TITLES},
-    {name:"Honors World History",teacher:"Wells",    color:"#ffa41b", grade:98.03, total:51, done:23, remaining:28},
-    {name:"Honors Geometry",    teacher:"Johnson",   color:"#4d7cff", grade:89.72, total:44, done:21, remaining:23},
-    {name:"Honors Physics 1",   teacher:"Accardo",   color:"#9b5de5", grade:87.03, total:41, done:18, remaining:23},
-    {name:"Social Problems 1",  teacher:"",          color:"#00c2a8", grade:94.01, total:44, done:30, remaining:14},
-    {name:"Criminology",        teacher:"",          color:"#22c55e", grade:95.61, total:44, done:40, remaining:4}
+    {name:"Honors English 1",    teacher:"McGregor", color:"#ff6b9d", grade:87.64, total:68, done:33, seedTitles:ENGLISH_TITLES},
+    {name:"Honors World History",teacher:"Wells",    color:"#ffa41b", grade:98.03, total:51, done:23, seedTitles:WORLDHIST_TITLES},
+    {name:"Honors Geometry",     teacher:"Johnson",  color:"#4d7cff", grade:89.72, total:44, done:21, seedTitles:GEOMETRY_TITLES},
+    {name:"Honors Physics 1",    teacher:"Accardo",  color:"#9b5de5", grade:87.03, total:41, done:18, seedTitles:PHYSICS_TITLES},
+    {name:"Social Problems 1",   teacher:"Wells",    color:"#00c2a8", grade:94.01, total:44, done:30, seedTitles:SOCIAL_TITLES},
+    {name:"Criminology",         teacher:"Knight",   color:"#22c55e", grade:95.61, total:44, done:40, seedTitles:CRIMINOLOGY_TITLES}
   ];
   const classes=[], tasks=[];
   defs.forEach((d,ci)=>{
@@ -450,9 +540,22 @@ function migrate(st){
   if(!Array.isArray(s.workDays)) s.workDays=[0,1,2,3,4,5,6];
   if(!s.targetDate) s.targetDate="2026-08-25";
   if(s.dailyCapMin===undefined) s.dailyCapMin=null;
-  if(!st.categories) st.categories=JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+  // merge in any new category types; keep the user's edited minutes, refresh keywords
+  st.categories = st.categories || {};
+  for(const k in DEFAULT_CATEGORIES){
+    if(!st.categories[k]) st.categories[k]=JSON.parse(JSON.stringify(DEFAULT_CATEGORIES[k]));
+    else st.categories[k].kw = DEFAULT_CATEGORIES[k].kw.slice();
+  }
   if(!Array.isArray(st.classes)) st.classes=[];
   if(!Array.isArray(st.tasks)) st.tasks=[];
+  // one-time upgrade: replace old placeholder classes with the real assignment lists,
+  // preserving any real (non-placeholder) tasks and their done-state.
+  if(st.tasks.some(t=>t.placeholder)){
+    const seeded=seedClasses();
+    const phIds=new Set(st.tasks.filter(t=>t.placeholder).map(t=>t.classId));
+    st.tasks = st.tasks.filter(t=>!phIds.has(t.classId)).concat(seeded.tasks.filter(t=>phIds.has(t.classId)));
+    seeded.classes.forEach(sc=>{ if(phIds.has(sc.id)){ const ex=st.classes.find(c=>c.id===sc.id); if(ex){ ex.teacher=sc.teacher; ex.grade=sc.grade; } else st.classes.push(sc); } });
+  }
   return st;
 }
 
